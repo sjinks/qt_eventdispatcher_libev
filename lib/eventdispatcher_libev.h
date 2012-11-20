@@ -1,15 +1,15 @@
-#ifndef EVENTDISPATCHER_LIBEVENT_H
-#define EVENTDISPATCHER_LIBEVENT_H
+#ifndef EVENTDISPATCHER_LIBEV_H
+#define EVENTDISPATCHER_LIBEV_H
 
 #include <QtCore/QAbstractEventDispatcher>
 
-class EventDispatcherLibEventPrivate;
+class EventDispatcherLibEvPrivate;
 
-class EventDispatcherLibEvent : public QAbstractEventDispatcher {
+class EventDispatcherLibEv : public QAbstractEventDispatcher {
 	Q_OBJECT
 public:
-	explicit EventDispatcherLibEvent(QObject* parent = 0);
-	virtual ~EventDispatcherLibEvent(void);
+	explicit EventDispatcherLibEv(QObject* parent = 0);
+	virtual ~EventDispatcherLibEv(void);
 
 	virtual bool processEvents(QEventLoop::ProcessEventsFlags flags);
 	virtual bool hasPendingEvents(void);
@@ -38,9 +38,9 @@ public:
 	virtual void flush(void);
 
 private:
-	Q_DISABLE_COPY(EventDispatcherLibEvent)
-	Q_DECLARE_PRIVATE(EventDispatcherLibEvent)
-	QScopedPointer<EventDispatcherLibEventPrivate> d_ptr;
+	Q_DISABLE_COPY(EventDispatcherLibEv)
+	Q_DECLARE_PRIVATE(EventDispatcherLibEv)
+	QScopedPointer<EventDispatcherLibEvPrivate> d_ptr;
 };
 
-#endif // EVENTDISPATCHER_LIBEVENT_H
+#endif // EVENTDISPATCHER_LIBEV_H

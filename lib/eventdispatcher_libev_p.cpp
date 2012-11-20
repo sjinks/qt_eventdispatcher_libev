@@ -1,12 +1,12 @@
 #include <QtCore/QCoreApplication>
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
 #if QT_VERSION >= 0x050000
 #	include <event2/thread.h>
 #endif
 #include "utils_p.h"
-#include "eventdispatcher_libevent_p.h"
+#include "eventdispatcher_libev_p.h"
 
-EventDispatcherLibEventPrivate::EventDispatcherLibEventPrivate(EventDispatcherLibEvent* const q)
+EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q)
 	: q_ptr(q), m_interrupt(false), m_pipe_read(), m_pipe_write(), m_base(0), m_wakeup(0),
 	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
 {
@@ -25,12 +25,12 @@ EventDispatcherLibEventPrivate::EventDispatcherLibEventPrivate(EventDispatcherLi
 		qFatal("%s: Fatal: Unable to create thread communication object", Q_FUNC_INFO);
 	}
 	else {
-		this->m_wakeup = event_new(this->m_base, this->m_pipe_read, EV_READ | EV_PERSIST, EventDispatcherLibEventPrivate::wake_up_handler, 0);
+		this->m_wakeup = event_new(this->m_base, this->m_pipe_read, EV_READ | EV_PERSIST, EventDispatcherLibEvPrivate::wake_up_handler, 0);
 		event_add(this->m_wakeup, 0);
 	}
 }
 
-EventDispatcherLibEventPrivate::~EventDispatcherLibEventPrivate(void)
+EventDispatcherLibEvPrivate::~EventDispatcherLibEvPrivate(void)
 {
 #ifdef HAVE_SYS_EVENTFD_H
 	Q_ASSERT(this->m_pipe_read == this->m_pipe_write);
@@ -56,9 +56,9 @@ EventDispatcherLibEventPrivate::~EventDispatcherLibEventPrivate(void)
 	}
 }
 
-bool EventDispatcherLibEventPrivate::processEvents(QEventLoop::ProcessEventsFlags flags)
+bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
-	Q_Q(EventDispatcherLibEvent);
+	Q_Q(EventDispatcherLibEv);
 
 	Q_ASSERT(this->m_timers_to_reactivate.isEmpty());
 
@@ -125,10 +125,10 @@ bool EventDispatcherLibEventPrivate::processEvents(QEventLoop::ProcessEventsFlag
 		while (it != timers.constEnd()) {
 			TimerHash::Iterator tit = this->m_timers.find(*it);
 			if (tit != this->m_timers.end()) {
-				EventDispatcherLibEventPrivate::TimerInfo* info = tit.value();
+				EventDispatcherLibEvPrivate::TimerInfo* info = tit.value();
 
 				if (!event_pending(info->ev, EV_TIMEOUT, 0)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
-					EventDispatcherLibEventPrivate::calculateNextTimeout(info, now, delta);
+					EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
 					event_add(info->ev, &delta);
 				}
 			}
@@ -149,7 +149,7 @@ bool EventDispatcherLibEventPrivate::processEvents(QEventLoop::ProcessEventsFlag
 	return result;
 }
 
-void EventDispatcherLibEventPrivate::wake_up_handler(int fd, short int events, void* arg)
+void EventDispatcherLibEvPrivate::wake_up_handler(int fd, short int events, void* arg)
 {
 	Q_UNUSED(events)
 	Q_UNUSED(arg)

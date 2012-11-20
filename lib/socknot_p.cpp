@@ -1,9 +1,9 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEvent>
 #include <QtCore/QSocketNotifier>
-#include "eventdispatcher_libevent_p.h"
+#include "eventdispatcher_libev_p.h"
 
-void EventDispatcherLibEventPrivate::registerSocketNotifier(QSocketNotifier* notifier)
+void EventDispatcherLibEvPrivate::registerSocketNotifier(QSocketNotifier* notifier)
 {
 	evutil_socket_t sockfd = notifier->socket();
 	short int what;
@@ -19,7 +19,7 @@ void EventDispatcherLibEventPrivate::registerSocketNotifier(QSocketNotifier* not
 	}
 
 	what |= EV_PERSIST;
-	struct event* ev = event_new(this->m_base, sockfd, what, EventDispatcherLibEventPrivate::socket_notifier_callback, this);
+	struct event* ev = event_new(this->m_base, sockfd, what, EventDispatcherLibEvPrivate::socket_notifier_callback, this);
 	event_add(ev, 0);
 
 	SocketNotifierInfo data;
@@ -28,7 +28,7 @@ void EventDispatcherLibEventPrivate::registerSocketNotifier(QSocketNotifier* not
 	this->m_notifiers.insertMulti(sockfd, data);
 }
 
-void EventDispatcherLibEventPrivate::unregisterSocketNotifier(QSocketNotifier* notifier)
+void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* notifier)
 {
 	evutil_socket_t sockfd = notifier->socket();
 	SocketNotifierHash::Iterator it = this->m_notifiers.find(sockfd);
@@ -45,9 +45,9 @@ void EventDispatcherLibEventPrivate::unregisterSocketNotifier(QSocketNotifier* n
 	}
 }
 
-void EventDispatcherLibEventPrivate::socket_notifier_callback(int fd, short int events, void* arg)
+void EventDispatcherLibEvPrivate::socket_notifier_callback(int fd, short int events, void* arg)
 {
-	EventDispatcherLibEventPrivate* disp = reinterpret_cast<EventDispatcherLibEventPrivate*>(arg);
+	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(arg);
 	disp->m_seen_event = true;
 	SocketNotifierHash::Iterator it = disp->m_notifiers.find(fd);
 	while (it != disp->m_notifiers.end() && it.key() == fd) {
@@ -63,7 +63,7 @@ void EventDispatcherLibEventPrivate::socket_notifier_callback(int fd, short int 
 	}
 }
 
-void EventDispatcherLibEventPrivate::disableSocketNotifiers(bool disable)
+void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 {
 	SocketNotifierHash::Iterator it = this->m_notifiers.begin();
 	while (it != this->m_notifiers.end()) {

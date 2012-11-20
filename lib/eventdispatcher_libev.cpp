@@ -1,31 +1,31 @@
 #include <QtCore/QSocketNotifier>
 #include <QtCore/QThread>
-#include "eventdispatcher_libevent.h"
-#include "eventdispatcher_libevent_p.h"
+#include "eventdispatcher_libev.h"
+#include "eventdispatcher_libev_p.h"
 #include "utils_p.h"
 
-EventDispatcherLibEvent::EventDispatcherLibEvent(QObject* parent)
-	: QAbstractEventDispatcher(parent), d_ptr(new EventDispatcherLibEventPrivate(this))
+EventDispatcherLibEv::EventDispatcherLibEv(QObject* parent)
+	: QAbstractEventDispatcher(parent), d_ptr(new EventDispatcherLibEvPrivate(this))
 {
 }
 
-EventDispatcherLibEvent::~EventDispatcherLibEvent(void)
+EventDispatcherLibEv::~EventDispatcherLibEv(void)
 {
 }
 
-bool EventDispatcherLibEvent::processEvents(QEventLoop::ProcessEventsFlags flags)
+bool EventDispatcherLibEv::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	return d->processEvents(flags);
 }
 
-bool EventDispatcherLibEvent::hasPendingEvents(void)
+bool EventDispatcherLibEv::hasPendingEvents(void)
 {
 	extern uint qGlobalPostedEventsCount();
 	return qGlobalPostedEventsCount() > 0;
 }
 
-void EventDispatcherLibEvent::registerSocketNotifier(QSocketNotifier* notifier)
+void EventDispatcherLibEv::registerSocketNotifier(QSocketNotifier* notifier)
 {
 #ifndef QT_NO_DEBUG
 	if (notifier->socket() < 0) {
@@ -42,11 +42,11 @@ void EventDispatcherLibEvent::registerSocketNotifier(QSocketNotifier* notifier)
 		return;
 	}
 
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	d->registerSocketNotifier(notifier);
 }
 
-void EventDispatcherLibEvent::unregisterSocketNotifier(QSocketNotifier* notifier)
+void EventDispatcherLibEv::unregisterSocketNotifier(QSocketNotifier* notifier)
 {
 #ifndef QT_NO_DEBUG
 	if (notifier->socket() < 0) {
@@ -64,11 +64,11 @@ void EventDispatcherLibEvent::unregisterSocketNotifier(QSocketNotifier* notifier
 		return;
 	}
 
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	d->unregisterSocketNotifier(notifier);
 }
 
-void EventDispatcherLibEvent::registerTimer(
+void EventDispatcherLibEv::registerTimer(
 	int timerId,
 	int interval,
 #if QT_VERSION >= 0x050000
@@ -96,11 +96,11 @@ void EventDispatcherLibEvent::registerTimer(
 	type = Qt::CoarseTimer;
 #endif
 
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	d->registerTimer(timerId, interval, type, object);
 }
 
-bool EventDispatcherLibEvent::unregisterTimer(int timerId)
+bool EventDispatcherLibEv::unregisterTimer(int timerId)
 {
 #ifndef QT_NO_DEBUG
 	if (timerId < 1) {
@@ -114,11 +114,11 @@ bool EventDispatcherLibEvent::unregisterTimer(int timerId)
 	}
 #endif
 
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	return d->unregisterTimer(timerId);
 }
 
-bool EventDispatcherLibEvent::unregisterTimers(QObject* object)
+bool EventDispatcherLibEv::unregisterTimers(QObject* object)
 {
 #ifndef QT_NO_DEBUG
 	if (!object) {
@@ -132,32 +132,32 @@ bool EventDispatcherLibEvent::unregisterTimers(QObject* object)
 	}
 #endif
 
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	return d->unregisterTimers(object);
 }
 
-QList<QAbstractEventDispatcher::TimerInfo> EventDispatcherLibEvent::registeredTimers(QObject* object) const
+QList<QAbstractEventDispatcher::TimerInfo> EventDispatcherLibEv::registeredTimers(QObject* object) const
 {
 	if (!object) {
 		qWarning("%s: invalid argument", Q_FUNC_INFO);
 		return QList<QAbstractEventDispatcher::TimerInfo>();
 	}
 
-	Q_D(const EventDispatcherLibEvent);
+	Q_D(const EventDispatcherLibEv);
 	return d->registeredTimers(object);
 }
 
 #if QT_VERSION >= 0x050000
-int EventDispatcherLibEvent::remainingTime(int timerId)
+int EventDispatcherLibEv::remainingTime(int timerId)
 {
-	Q_D(const EventDispatcherLibEvent);
+	Q_D(const EventDispatcherLibEv);
 	return d->remainingTime(timerId);
 }
 #endif
 
-void EventDispatcherLibEvent::wakeUp(void)
+void EventDispatcherLibEv::wakeUp(void)
 {
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 
 	quint64 x = 1;
 	if (safe_write(d->m_pipe_write, reinterpret_cast<const char*>(&x), sizeof(x)) != sizeof(x)) {
@@ -165,13 +165,13 @@ void EventDispatcherLibEvent::wakeUp(void)
 	}
 }
 
-void EventDispatcherLibEvent::interrupt(void)
+void EventDispatcherLibEv::interrupt(void)
 {
-	Q_D(EventDispatcherLibEvent);
+	Q_D(EventDispatcherLibEv);
 	d->m_interrupt = true;
 	this->wakeUp();
 }
 
-void EventDispatcherLibEvent::flush(void)
+void EventDispatcherLibEv::flush(void)
 {
 }

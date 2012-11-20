@@ -1,8 +1,8 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEvent>
-#include "eventdispatcher_libevent_p.h"
+#include "eventdispatcher_libev_p.h"
 
-void EventDispatcherLibEventPrivate::calculateCoarseTimerTimeout(EventDispatcherLibEventPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when)
+void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when)
 {
 	Q_ASSERT(info->interval > 20);
 	// The coarse timer works like this:
@@ -114,7 +114,7 @@ void EventDispatcherLibEventPrivate::calculateCoarseTimerTimeout(EventDispatcher
 	Q_ASSERT(evutil_timercmp(&now, &when, <=));
 }
 
-void EventDispatcherLibEventPrivate::calculateNextTimeout(EventDispatcherLibEventPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta)
+void EventDispatcherLibEvPrivate::calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta)
 {
 	struct timeval tv_interval;
 	struct timeval when;
@@ -153,20 +153,20 @@ void EventDispatcherLibEventPrivate::calculateNextTimeout(EventDispatcherLibEven
 			evutil_timeradd(&now, &tv_interval, &info->when);
 		}
 
-		EventDispatcherLibEventPrivate::calculateCoarseTimerTimeout(info, now, when);
+		EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(info, now, when);
 	}
 
 	evutil_timersub(&when, &now, &delta);
 }
 
-void EventDispatcherLibEventPrivate::registerTimer(int timerId, int interval, Qt::TimerType type, QObject* object)
+void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::TimerType type, QObject* object)
 {
 	struct timeval now;
 	evutil_gettimeofday(&now, 0);
 
-	EventDispatcherLibEventPrivate::TimerInfo* info = new EventDispatcherLibEventPrivate::TimerInfo;
+	EventDispatcherLibEvPrivate::TimerInfo* info = new EventDispatcherLibEvPrivate::TimerInfo;
 	info->self     = this;
-	info->ev       = event_new(this->m_base, -1, 0, EventDispatcherLibEventPrivate::timer_callback, info);
+	info->ev       = event_new(this->m_base, -1, 0, EventDispatcherLibEvPrivate::timer_callback, info);
 	info->timerId  = timerId;
 	info->interval = interval;
 	info->type     = type;
@@ -183,17 +183,17 @@ void EventDispatcherLibEventPrivate::registerTimer(int timerId, int interval, Qt
 	}
 
 	struct timeval delta;
-	EventDispatcherLibEventPrivate::calculateNextTimeout(info, now, delta);
+	EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
 
 	event_add(info->ev, &delta);
 	this->m_timers.insert(timerId, info);
 }
 
-bool EventDispatcherLibEventPrivate::unregisterTimer(int timerId)
+bool EventDispatcherLibEvPrivate::unregisterTimer(int timerId)
 {
 	TimerHash::Iterator it = this->m_timers.find(timerId);
 	if (it != this->m_timers.end()) {
-		EventDispatcherLibEventPrivate::TimerInfo* info = it.value();
+		EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 		event_del(info->ev);
 		event_free(info->ev);
 		delete info;
@@ -204,11 +204,11 @@ bool EventDispatcherLibEventPrivate::unregisterTimer(int timerId)
 	return false;
 }
 
-bool EventDispatcherLibEventPrivate::unregisterTimers(QObject* object)
+bool EventDispatcherLibEvPrivate::unregisterTimers(QObject* object)
 {
 	TimerHash::Iterator it = this->m_timers.begin();
 	while (it != this->m_timers.end()) {
-		EventDispatcherLibEventPrivate::TimerInfo* info = it.value();
+		EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 		if (object == info->object) {
 			event_del(info->ev);
 			event_free(info->ev);
@@ -223,13 +223,13 @@ bool EventDispatcherLibEventPrivate::unregisterTimers(QObject* object)
 	return true;
 }
 
-QList<QAbstractEventDispatcher::TimerInfo> EventDispatcherLibEventPrivate::registeredTimers(QObject* object) const
+QList<QAbstractEventDispatcher::TimerInfo> EventDispatcherLibEvPrivate::registeredTimers(QObject* object) const
 {
 	QList<QAbstractEventDispatcher::TimerInfo> res;
 
 	TimerHash::ConstIterator it = this->m_timers.constBegin();
 	while (it != this->m_timers.constEnd()) {
-		EventDispatcherLibEventPrivate::TimerInfo* info = it.value();
+		EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 		if (object == info->object) {
 #if QT_VERSION < 0x050000
 			QAbstractEventDispatcher::TimerInfo ti(it.key(), info->interval);
@@ -245,11 +245,11 @@ QList<QAbstractEventDispatcher::TimerInfo> EventDispatcherLibEventPrivate::regis
 	return res;
 }
 
-int EventDispatcherLibEventPrivate::remainingTime(int timerId) const
+int EventDispatcherLibEvPrivate::remainingTime(int timerId) const
 {
 	TimerHash::ConstIterator it = this->m_timers.find(timerId);
 	if (it != this->m_timers.end()) {
-		const EventDispatcherLibEventPrivate::TimerInfo* info = it.value();
+		const EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 		struct timeval when;
 
 		int r = event_pending(info->ev, EV_TIMEOUT, &when);
@@ -271,14 +271,14 @@ int EventDispatcherLibEventPrivate::remainingTime(int timerId) const
 	return -1;
 }
 
-void EventDispatcherLibEventPrivate::timer_callback(int fd, short int events, void* arg)
+void EventDispatcherLibEvPrivate::timer_callback(int fd, short int events, void* arg)
 {
 	Q_ASSERT(-1 == fd);
 	Q_ASSERT(events & EV_TIMEOUT);
 	Q_UNUSED(fd)
 	Q_UNUSED(events)
 
-	EventDispatcherLibEventPrivate::TimerInfo* info = reinterpret_cast<EventDispatcherLibEventPrivate::TimerInfo*>(arg);
+	EventDispatcherLibEvPrivate::TimerInfo* info = reinterpret_cast<EventDispatcherLibEvPrivate::TimerInfo*>(arg);
 	info->self->m_seen_event = true;
 
 	// Timer can be reactivated only after its callback finishes; processEvents() will take care of this
@@ -288,7 +288,7 @@ void EventDispatcherLibEventPrivate::timer_callback(int fd, short int events, vo
 	QCoreApplication::postEvent(info->object, event);
 }
 
-void EventDispatcherLibEventPrivate::disableTimers(bool disable)
+void EventDispatcherLibEvPrivate::disableTimers(bool disable)
 {
 	struct timeval now;
 	if (!disable) {
@@ -297,13 +297,13 @@ void EventDispatcherLibEventPrivate::disableTimers(bool disable)
 
 	TimerHash::Iterator it = this->m_timers.begin();
 	while (it != this->m_timers.end()) {
-		EventDispatcherLibEventPrivate::TimerInfo* info = it.value();
+		EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 		if (disable) {
 			event_del(info->ev);
 		}
 		else {
 			struct timeval delta;
-			EventDispatcherLibEventPrivate::calculateNextTimeout(info, now, delta);
+			EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
 			event_add(info->ev, &delta);
 		}
 

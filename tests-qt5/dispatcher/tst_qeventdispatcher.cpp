@@ -41,7 +41,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtTest/QtTest>
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
 
 enum {
     PreciseTimerInterval    =   10,
@@ -210,7 +210,7 @@ void tst_QEventDispatcher::sendPostedEvents()
 
 int main(int argc, char** argv)
 {
-    QCoreApplication::setEventDispatcher(new EventDispatcherLibEvent);
+    QCoreApplication::setEventDispatcher(new EventDispatcherLibEv);
     QCoreApplication app(argc, argv);
     tst_QEventDispatcher t;
     return QTest::qExec(&t, argc, argv);

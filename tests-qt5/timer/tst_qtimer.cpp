@@ -41,7 +41,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtTest/QtTest>
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
 
 #include <qtimer.h>
 #include <qthread.h>
@@ -392,7 +392,7 @@ void tst_QTimer::moveToThread()
     ti2.start(MOVETOTHREAD_TIMEOUT);
     QVERIFY((ti1.timerId() & 0xffffff) != (ti2.timerId() & 0xffffff));
     QThread tr;
-    tr.setEventDispatcher(new EventDispatcherLibEvent());
+    tr.setEventDispatcher(new EventDispatcherLibEv());
     ti1.moveToThread(&tr);
     connect(&ti1,SIGNAL(timeout()), &tr, SLOT(quit()));
     tr.start();
@@ -718,7 +718,7 @@ void tst_QTimer::postedEventsShouldNotStarveTimers()
 
 int main(int argc, char** argv)
 {
-	QCoreApplication::setEventDispatcher(new EventDispatcherLibEvent);
+	QCoreApplication::setEventDispatcher(new EventDispatcherLibEv);
 	QCoreApplication app(argc, argv);
 	tst_QTimer t;
 	return QTest::qExec(&t, argc, argv);

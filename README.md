@@ -1,7 +1,10 @@
-qt_eventdispatcher_libevent
-===========================
+WARNING, WORK IN PROGRESS, DO NOT USE!!!
+========================================
 
-libevent based event dispatcher for Qt
+qt_eventdispatcher_libev
+========================
+
+libev based event dispatcher for Qt
 
 **Features**
 * very fast :-)
@@ -11,7 +14,7 @@ libevent based event dispatcher for Qt
 * passes Qt 5 event dispatcher, event loop, timer and socket notifier tests
 
 **Unsupported features**
-* `QSocketNotifier::Exception` (libevent offers no support for this)
+* `QSocketNotifier::Exception` (libev offers no support for this)
 * undocumented `QCoreApplication::watchUnixSignal()` is not supported (GLib dispatcher does not support it either; this feature has been removed from Qt 5 anyway)
 
 **Usage (Qt 4):**
@@ -20,11 +23,11 @@ Simply include the header file and instantiate the dispatcher in `main()`
 before creating the Qt application object.
 
 ```c++
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
     
 int main(int argc, char** argv)
 {
-    EventDispatcherLibEvent dispatcher;
+    EventDispatcherLibEv dispatcher;
     QCoreApplication app(argc, argv);
 
     // ...
@@ -37,7 +40,7 @@ And add these lines to the .pro file:
 
 ```
 CONFIG    += link_pkgconfig
-PKGCONFIG += eventdispatcher_libevent
+PKGCONFIG += eventdispatcher_libev
 ```
 
 **Usage (Qt 5):**
@@ -46,11 +49,11 @@ Simply include the header file and instantiate the dispatcher in `main()`
 before creating the Qt application object.
 
 ```c++
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
     
 int main(int argc, char** argv)
 {
-    QCoreApplication::setEventDispatcher(new EventDispatcherLibEvent);
+    QCoreApplication::setEventDispatcher(new EventDispatcherLibEv);
     QCoreApplication app(argc, argv);
 
     // ...
@@ -63,12 +66,12 @@ And add these lines to the .pro file:
 
 ```
 CONFIG    += link_pkgconfig
-PKGCONFIG += eventdispatcher_libevent
+PKGCONFIG += eventdispatcher_libev
 ```
 
 Qt 5 allows to specify a custom event dispatcher for a thread:
 
 ```c++
 QThread* thr = new QThread;
-thr->setEventDispatcher(new EventDispatcherLibEvent);
+thr->setEventDispatcher(new EventDispatcherLibEv);
 ```

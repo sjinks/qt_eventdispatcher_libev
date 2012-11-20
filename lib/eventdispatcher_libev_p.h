@@ -1,5 +1,5 @@
-#ifndef EVENTDISPATCHER_LIBEVENT_P_H
-#define EVENTDISPATCHER_LIBEVENT_P_H
+#ifndef EVENTDISPATCHER_LIBEV_P_H
+#define EVENTDISPATCHER_LIBEV_P_H
 
 #include <qplatformdefs.h>
 #include <QtCore/QAbstractEventDispatcher>
@@ -18,14 +18,14 @@ namespace Qt { // Sorry
 }
 #endif
 
-class EventDispatcherLibEvent;
+class EventDispatcherLibEv;
 struct event;
 struct event_base;
 
-class Q_DECL_HIDDEN EventDispatcherLibEventPrivate {
+class Q_DECL_HIDDEN EventDispatcherLibEvPrivate {
 public:
-	EventDispatcherLibEventPrivate(EventDispatcherLibEvent* const q);
-	~EventDispatcherLibEventPrivate(void);
+	EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q);
+	~EventDispatcherLibEvPrivate(void);
 	bool processEvents(QEventLoop::ProcessEventsFlags flags);
 	void registerSocketNotifier(QSocketNotifier* notifier);
 	void unregisterSocketNotifier(QSocketNotifier* notifier);
@@ -41,7 +41,7 @@ public:
 	};
 
 	struct TimerInfo {
-		EventDispatcherLibEventPrivate* self;
+		EventDispatcherLibEvPrivate* self;
 		QObject* object;
 		struct event* ev;
 		struct timeval when;
@@ -54,9 +54,9 @@ public:
 	typedef QHash<int, TimerInfo*> TimerHash;
 
 private:
-	Q_DISABLE_COPY(EventDispatcherLibEventPrivate)
-	Q_DECLARE_PUBLIC(EventDispatcherLibEvent)
-	EventDispatcherLibEvent* const q_ptr;
+	Q_DISABLE_COPY(EventDispatcherLibEvPrivate)
+	Q_DECLARE_PUBLIC(EventDispatcherLibEv)
+	EventDispatcherLibEv* const q_ptr;
 
 	bool m_interrupt;
 	int m_pipe_read;
@@ -68,8 +68,8 @@ private:
 	QSet<int> m_timers_to_reactivate;
 	bool m_seen_event;
 
-	static void calculateCoarseTimerTimeout(EventDispatcherLibEventPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when);
-	static void calculateNextTimeout(EventDispatcherLibEventPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta);
+	static void calculateCoarseTimerTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when);
+	static void calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta);
 
 	static void socket_notifier_callback(evutil_socket_t fd, short int events, void* arg);
 	static void timer_callback(evutil_socket_t fd, short int events, void* arg);
@@ -79,4 +79,4 @@ private:
 	void disableTimers(bool disable);
 };
 
-#endif // EVENTDISPATCHER_LIBEVENT_P_H
+#endif // EVENTDISPATCHER_LIBEV_P_H

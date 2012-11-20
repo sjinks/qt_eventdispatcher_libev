@@ -54,7 +54,7 @@
 #include <sys/select.h>
 #include <limits>
 
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
 
 class tst_QSocketNotifier : public QObject
 {
@@ -301,7 +301,7 @@ void tst_QSocketNotifier::posixSockets()
 
 int main(int argc, char** argv)
 {
-    QCoreApplication::setEventDispatcher(new EventDispatcherLibEvent);
+    QCoreApplication::setEventDispatcher(new EventDispatcherLibEv);
     QCoreApplication app(argc, argv);
     tst_QSocketNotifier t;
     return QTest::qExec(&t, argc, argv);

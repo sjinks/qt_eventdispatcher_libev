@@ -1,5 +1,4 @@
 #include <qplatformdefs.h>
-#include "eventdispatcher_libevent_p.h"
 #include "utils_p.h"
 #if defined(HAVE_SYS_EVENTFD_H) || (defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 8))
 #	include <sys/eventfd.h>

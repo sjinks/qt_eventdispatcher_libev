@@ -52,7 +52,7 @@
 #include <qwaitcondition.h>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include "eventdispatcher_libevent.h"
+#include "eventdispatcher_libev.h"
 
 class EventLoopExiter : public QObject
 {
@@ -284,7 +284,7 @@ void tst_QEventLoop::exec()
         // Note: this behaviour differs from QCoreApplication and QEventLoop
         // see tst_QCoreApplication::eventLoopExecAfterExit, tst_QEventLoop::reexec
         MultipleExecThread thread;
-        thread.setEventDispatcher(new EventDispatcherLibEvent);
+        thread.setEventDispatcher(new EventDispatcherLibEv);
 
         // start thread and wait for checkpoint
         thread.mutex.lock();
@@ -397,7 +397,7 @@ void tst_QEventLoop::execAfterExit()
 void tst_QEventLoop::wakeUp()
 {
     EventLoopThread thread;
-    thread.setEventDispatcher(new EventDispatcherLibEvent);
+    thread.setEventDispatcher(new EventDispatcherLibEv);
 
     QEventLoop eventLoop;
     connect(&thread, SIGNAL(checkPoint()), &eventLoop, SLOT(quit()));
@@ -530,7 +530,7 @@ public:
 void tst_QEventLoop::processEventsExcludeSocket()
 {
     SocketTestThread thread;
-    thread.setEventDispatcher(new EventDispatcherLibEvent);
+    thread.setEventDispatcher(new EventDispatcherLibEv);
     thread.start();
     QVERIFY(thread.wait());
     QVERIFY(!thread.testResult);
@@ -622,7 +622,7 @@ void tst_QEventLoop::deliverInDefinedOrder()
     QThread threads[NbThread];
     Object objects[NbObject];
     for (int t = 0; t < NbThread; t++) {
-        threads[t].setEventDispatcher(new EventDispatcherLibEvent);
+        threads[t].setEventDispatcher(new EventDispatcherLibEv);
         threads[t].start();
     }
 
@@ -734,7 +734,7 @@ void tst_QEventLoop::testQuitLock()
 
 int main(int argc, char** argv)
 {
-    QCoreApplication::setEventDispatcher(new EventDispatcherLibEvent);
+    QCoreApplication::setEventDispatcher(new EventDispatcherLibEv);
     QCoreApplication app(argc, argv);
     tst_QEventLoop t;
     return QTest::qExec(&t, argc, argv);

@@ -42,7 +42,7 @@ diff -uwd qsocketnotifier/tst_qsocketnotifier.cpp socketnotifier/tst_qsocketnoti
 -#  undef max
 -#  undef min
 -#endif // Q_CC_MSVC
-+#include "eventdispatcher_libevent.h"
++#include "eventdispatcher_libev.h"
  
  class tst_QSocketNotifier : public QObject
  {
@@ -55,7 +55,7 @@ diff -uwd qsocketnotifier/tst_qsocketnotifier.cpp socketnotifier/tst_qsocketnoti
 +
 +int main(int argc, char** argv)
 +{
-+    QCoreApplication::setEventDispatcher(new EventDispatcherLibEvent);
++    QCoreApplication::setEventDispatcher(new EventDispatcherLibEv);
 +    QCoreApplication app(argc, argv);
 +    tst_QSocketNotifier t;
 +    return QTest::qExec(&t, argc, argv);
