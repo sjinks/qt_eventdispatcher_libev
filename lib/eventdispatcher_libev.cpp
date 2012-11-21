@@ -2,7 +2,6 @@
 #include <QtCore/QThread>
 #include "eventdispatcher_libev.h"
 #include "eventdispatcher_libev_p.h"
-#include "utils_p.h"
 
 EventDispatcherLibEv::EventDispatcherLibEv(QObject* parent)
 	: QAbstractEventDispatcher(parent), d_ptr(new EventDispatcherLibEvPrivate(this))
@@ -159,10 +158,7 @@ void EventDispatcherLibEv::wakeUp(void)
 {
 	Q_D(EventDispatcherLibEv);
 
-	quint64 x = 1;
-	if (safe_write(d->m_pipe_write, reinterpret_cast<const char*>(&x), sizeof(x)) != sizeof(x)) {
-		qErrnoWarning("%s: write failed", Q_FUNC_INFO);
-	}
+	ev_async_send(d->m_base, &d->m_wakeup);
 }
 
 void EventDispatcherLibEv::interrupt(void)

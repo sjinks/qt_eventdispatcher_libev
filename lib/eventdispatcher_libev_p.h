@@ -57,10 +57,8 @@ private:
 	EventDispatcherLibEv* const q_ptr;
 
 	bool m_interrupt;
-	int m_pipe_read;
-	int m_pipe_write;
 	struct ev_loop* m_base;
-	struct ev_io m_wakeup;
+	struct ev_async m_wakeup;
 	SocketNotifierHash m_notifiers;
 	TimerHash m_timers;
 	QSet<int> m_timers_to_reactivate;
@@ -71,7 +69,7 @@ private:
 
 	static void socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents);
 	static void timer_callback(struct ev_loop* loop, struct ev_timer* w, int revents);
-	static void wake_up_handler(struct ev_loop* loop, struct ev_io* w, int revents);
+	static void wake_up_handler(struct ev_loop* loop, struct ev_async* w, int revents);
 
 	void disableSocketNotifiers(bool disable);
 	void killSocketNotifiers(void);

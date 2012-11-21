@@ -2,8 +2,8 @@ QT        -= gui
 TARGET     = eventdispatcher_libev
 TEMPLATE   = lib
 CONFIG    += staticlib create_prl create_pc link_pkgconfig
-HEADERS   += eventdispatcher_libev.h eventdispatcher_libev_p.h utils_p.h
-SOURCES   += eventdispatcher_libev.cpp eventdispatcher_libev_p.cpp utils_p.cpp timers_p.cpp socknot_p.cpp
+HEADERS   += eventdispatcher_libev.h eventdispatcher_libev_p.h
+SOURCES   += eventdispatcher_libev.cpp eventdispatcher_libev_p.cpp timers_p.cpp socknot_p.cpp
 
 LIBS      += -lev
 

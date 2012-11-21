@@ -5,7 +5,6 @@ LibEv based event dispatcher for Qt
 
 **Features**
 * very fast :-)
-* `eventfd()` is used instead of `pipe()` for internal communication (automatically enabled if glibc 2.8 or better is detected)
 * compatibility with Qt4 and Qt 5
 * does not use any private Qt headers
 * passes Qt 5 event dispatcher, event loop, timer and socket notifier tests
