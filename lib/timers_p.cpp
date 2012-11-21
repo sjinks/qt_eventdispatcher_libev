@@ -250,7 +250,7 @@ int EventDispatcherLibEvPrivate::remainingTime(int timerId) const
 	if (it != this->m_timers.end()) {
 		const EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 
-		if (ev_is_pending(&info->ev)) {
+		if (ev_is_pending(&info->ev) || ev_is_active(&info->ev)) {
 			ev_tstamp now  = ev_now(this->m_base);
 			ev_tstamp when = info->when.tv_sec + info->when.tv_usec / 1.0E6;
 
