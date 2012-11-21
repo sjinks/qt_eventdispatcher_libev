@@ -3,13 +3,14 @@
 #include "eventdispatcher_libev_p.h"
 
 EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q)
-	: q_ptr(q), m_interrupt(false), m_base(0), m_wakeup(),
+	: q_ptr(q), m_interrupt(false), m_base(0), m_wakeup(), m_wakeups(),
 	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
 {
 	this->m_base = ev_loop_new(EVFLAG_AUTO);
 	Q_CHECK_PTR(this->m_base != 0);
 
 	ev_async_init(&this->m_wakeup, EventDispatcherLibEvPrivate::wake_up_handler);
+	this->m_wakeup.data = this;
 	ev_async_start(this->m_base, &this->m_wakeup);
 }
 
@@ -123,6 +124,10 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 void EventDispatcherLibEvPrivate::wake_up_handler(struct ev_loop* loop, struct ev_async* w, int revents)
 {
 	Q_UNUSED(loop)
-	Q_UNUSED(w)
 	Q_UNUSED(revents)
+
+	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(w->data);
+	if (!disp->m_wakeups.testAndSetRelease(1, 0)) {
+		qCritical("%s: internal error, wakeUps.testAndSetRelease(1, 0) failed!", Q_FUNC_INFO);
+	}
 }

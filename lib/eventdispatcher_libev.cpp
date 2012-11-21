@@ -158,7 +158,9 @@ void EventDispatcherLibEv::wakeUp(void)
 {
 	Q_D(EventDispatcherLibEv);
 
-	ev_async_send(d->m_base, &d->m_wakeup);
+	if (d->m_wakeups.testAndSetAcquire(0, 1)) {
+		ev_async_send(d->m_base, &d->m_wakeup);
+	}
 }
 
 void EventDispatcherLibEv::interrupt(void)
