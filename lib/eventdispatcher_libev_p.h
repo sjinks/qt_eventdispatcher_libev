@@ -35,7 +35,7 @@ public:
 
 	struct SocketNotifierInfo {
 		QSocketNotifier* sn;
-		struct ev_io ev;
+		struct ev_io* ev;
 	};
 
 	struct TimerInfo {

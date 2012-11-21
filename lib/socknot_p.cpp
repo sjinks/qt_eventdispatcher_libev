@@ -18,12 +18,12 @@ void EventDispatcherLibEvPrivate::registerSocketNotifier(QSocketNotifier* notifi
 			return;
 	}
 
-
 	SocketNotifierInfo data;
 	data.sn = notifier;
-	ev_io_init(&data.ev, EventDispatcherLibEvPrivate::socket_notifier_callback, sockfd, what);
-	data.ev.data = this;
-	ev_io_start(this->m_base, &data.ev);
+	data.ev = new struct ev_io;
+	ev_io_init(data.ev, EventDispatcherLibEvPrivate::socket_notifier_callback, sockfd, what);
+	data.ev->data = this;
+	ev_io_start(this->m_base, data.ev);
 
 	this->m_notifiers.insertMulti(sockfd, data);
 }
@@ -35,7 +35,8 @@ void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* noti
 	while (it != this->m_notifiers.end() && it.key() == sockfd) {
 		SocketNotifierInfo& data = it.value();
 		if (data.sn == notifier) {
-			ev_io_stop(this->m_base, &data.ev);
+			ev_io_stop(this->m_base, data.ev);
+			delete data.ev;
 			it = this->m_notifiers.erase(it);
 		}
 		else {
@@ -69,7 +70,13 @@ void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 	SocketNotifierHash::Iterator it = this->m_notifiers.begin();
 	while (it != this->m_notifiers.end()) {
 		SocketNotifierInfo& data = it.value();
-		disable ? (ev_io_stop(this->m_base, &data.ev)) : (ev_io_start(this->m_base, &data.ev));
+		if (disable) {
+			ev_io_stop(this->m_base, data.ev);
+		}
+		else {
+			ev_io_start(this->m_base, data.ev);
+		}
+
 		++it;
 	}
 }
