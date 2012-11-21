@@ -5,8 +5,8 @@
 
 void EventDispatcherLibEvPrivate::registerSocketNotifier(QSocketNotifier* notifier)
 {
-	evutil_socket_t sockfd = notifier->socket();
-	short int what;
+	int sockfd = notifier->socket();
+	int what;
 	switch (notifier->type()) {
 		case QSocketNotifier::Read:  what = EV_READ; break;
 		case QSocketNotifier::Write: what = EV_WRITE; break;
@@ -18,25 +18,24 @@ void EventDispatcherLibEvPrivate::registerSocketNotifier(QSocketNotifier* notifi
 			return;
 	}
 
-	what |= EV_PERSIST;
-	struct event* ev = event_new(this->m_base, sockfd, what, EventDispatcherLibEvPrivate::socket_notifier_callback, this);
-	event_add(ev, 0);
 
 	SocketNotifierInfo data;
 	data.sn = notifier;
-	data.ev = ev;
+	ev_io_init(&data.ev, EventDispatcherLibEvPrivate::socket_notifier_callback, sockfd, what);
+	data.ev.data = this;
+	ev_io_start(this->m_base, &data.ev);
+
 	this->m_notifiers.insertMulti(sockfd, data);
 }
 
 void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* notifier)
 {
-	evutil_socket_t sockfd = notifier->socket();
+	int sockfd = notifier->socket();
 	SocketNotifierHash::Iterator it = this->m_notifiers.find(sockfd);
 	while (it != this->m_notifiers.end() && it.key() == sockfd) {
 		SocketNotifierInfo& data = it.value();
 		if (data.sn == notifier) {
-			event_del(data.ev);
-			event_free(data.ev);
+			ev_io_stop(this->m_base, &data.ev);
 			it = this->m_notifiers.erase(it);
 		}
 		else {
@@ -45,16 +44,18 @@ void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* noti
 	}
 }
 
-void EventDispatcherLibEvPrivate::socket_notifier_callback(int fd, short int events, void* arg)
+void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents)
 {
-	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(arg);
+	Q_UNUSED(loop)
+
+	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(w->data);
 	disp->m_seen_event = true;
-	SocketNotifierHash::Iterator it = disp->m_notifiers.find(fd);
-	while (it != disp->m_notifiers.end() && it.key() == fd) {
+	SocketNotifierHash::Iterator it = disp->m_notifiers.find(w->fd);
+	while (it != disp->m_notifiers.end() && it.key() == w->fd) {
 		SocketNotifierInfo& data = it.value();
 		QSocketNotifier::Type type = data.sn->type();
 
-		if ((QSocketNotifier::Read == type && (events & EV_READ)) || (QSocketNotifier::Write == type && (events & EV_WRITE))) {
+		if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
 			QEvent* e = new QEvent(QEvent::SockAct);
 			QCoreApplication::postEvent(data.sn, e);
 		}
@@ -68,7 +69,7 @@ void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 	SocketNotifierHash::Iterator it = this->m_notifiers.begin();
 	while (it != this->m_notifiers.end()) {
 		SocketNotifierInfo& data = it.value();
-		disable ? event_del(data.ev) : event_add(data.ev, 0);
+		disable ? (ev_io_stop(this->m_base, &data.ev)) : (ev_io_start(this->m_base, &data.ev));
 		++it;
 	}
 }

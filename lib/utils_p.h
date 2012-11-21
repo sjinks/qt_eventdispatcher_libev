@@ -5,7 +5,6 @@
 #include <qplatformdefs.h>
 #include <errno.h>
 
-Q_DECL_HIDDEN void event_log_callback(int severity, const char* msg);
 Q_DECL_HIDDEN int make_tco(int* readfd, int* writefd);
 
 Q_DECL_HIDDEN inline qint64 safe_read(int fd, void* data, qint64 maxlen)

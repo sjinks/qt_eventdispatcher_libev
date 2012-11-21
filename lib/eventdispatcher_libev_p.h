@@ -6,7 +6,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QMultiHash>
 #include <QtCore/QSet>
-#include <event2/event.h>
+#include <ev.h>
 
 #if QT_VERSION < 0x050000
 namespace Qt { // Sorry
@@ -19,8 +19,6 @@ namespace Qt { // Sorry
 #endif
 
 class EventDispatcherLibEv;
-struct event;
-struct event_base;
 
 class Q_DECL_HIDDEN EventDispatcherLibEvPrivate {
 public:
@@ -37,20 +35,20 @@ public:
 
 	struct SocketNotifierInfo {
 		QSocketNotifier* sn;
-		struct event* ev;
+		struct ev_io ev;
 	};
 
 	struct TimerInfo {
 		EventDispatcherLibEvPrivate* self;
 		QObject* object;
-		struct event* ev;
+		struct ev_timer ev;
 		struct timeval when;
 		int timerId;
 		int interval;
 		Qt::TimerType type;
 	};
 
-	typedef QMultiHash<evutil_socket_t, SocketNotifierInfo> SocketNotifierHash;
+	typedef QMultiHash<int, SocketNotifierInfo> SocketNotifierHash;
 	typedef QHash<int, TimerInfo*> TimerHash;
 
 private:
@@ -61,8 +59,8 @@ private:
 	bool m_interrupt;
 	int m_pipe_read;
 	int m_pipe_write;
-	struct event_base* m_base;
-	struct event* m_wakeup;
+	struct ev_loop* m_base;
+	struct ev_io m_wakeup;
 	SocketNotifierHash m_notifiers;
 	TimerHash m_timers;
 	QSet<int> m_timers_to_reactivate;
@@ -71,9 +69,9 @@ private:
 	static void calculateCoarseTimerTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when);
 	static void calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta);
 
-	static void socket_notifier_callback(evutil_socket_t fd, short int events, void* arg);
-	static void timer_callback(evutil_socket_t fd, short int events, void* arg);
-	static void wake_up_handler(evutil_socket_t fd, short int events, void* arg);
+	static void socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents);
+	static void timer_callback(struct ev_loop* loop, struct ev_timer* w, int revents);
+	static void wake_up_handler(struct ev_loop* loop, struct ev_io* w, int revents);
 
 	void disableSocketNotifiers(bool disable);
 	void disableTimers(bool disable);

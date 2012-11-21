@@ -2,6 +2,7 @@
 *.o
 *.moc
 *.prl
+*.pro.user
 moc_*.cpp
 Makefile
 Makefile.*

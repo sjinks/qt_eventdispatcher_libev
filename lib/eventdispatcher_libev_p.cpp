@@ -1,32 +1,20 @@
 #include <QtCore/QCoreApplication>
 #include "eventdispatcher_libev.h"
-#if QT_VERSION >= 0x050000
-#	include <event2/thread.h>
-#endif
 #include "utils_p.h"
 #include "eventdispatcher_libev_p.h"
 
 EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q)
-	: q_ptr(q), m_interrupt(false), m_pipe_read(), m_pipe_write(), m_base(0), m_wakeup(0),
+	: q_ptr(q), m_interrupt(false), m_pipe_read(), m_pipe_write(), m_base(0), m_wakeup(),
 	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
 {
-	static bool init = false;
-	if (!init) {
-		init = true;
-		event_set_log_callback(event_log_callback);
-#if QT_VERSION >= 0x050000
-		evthread_use_pthreads();
-#endif
-	}
-
-	this->m_base = event_base_new();
+	this->m_base = ev_loop_new(EVFLAG_AUTO);
 
 	if (-1 == make_tco(&this->m_pipe_read, &this->m_pipe_write)) {
 		qFatal("%s: Fatal: Unable to create thread communication object", Q_FUNC_INFO);
 	}
 	else {
-		this->m_wakeup = event_new(this->m_base, this->m_pipe_read, EV_READ | EV_PERSIST, EventDispatcherLibEvPrivate::wake_up_handler, 0);
-		event_add(this->m_wakeup, 0);
+		ev_io_init(&this->m_wakeup, EventDispatcherLibEvPrivate::wake_up_handler, this->m_pipe_read, EV_READ);
+		ev_io_start(this->m_base, &this->m_wakeup);
 	}
 }
 
@@ -36,22 +24,18 @@ EventDispatcherLibEvPrivate::~EventDispatcherLibEvPrivate(void)
 	Q_ASSERT(this->m_pipe_read == this->m_pipe_write);
 #else
 	if (-1 != this->m_pipe_write) {
-		evutil_closesocket(this->m_pipe_write);
+		QT_CLOSE(this->m_pipe_write);
 	}
 #endif
 
 	if (-1 != this->m_pipe_read) {
-		evutil_closesocket(this->m_pipe_read);
+		QT_CLOSE(this->m_pipe_read);
 	}
 
-	if (this->m_wakeup) {
-		event_del(this->m_wakeup);
-		event_free(this->m_wakeup);
-		this->m_wakeup = 0;
-	}
+	ev_io_stop(this->m_base, &this->m_wakeup);
 
 	if (this->m_base) {
-		event_base_free(this->m_base);
+		ev_loop_destroy(this->m_base);
 		this->m_base = 0;
 	}
 }
@@ -89,7 +73,7 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 			this->m_seen_event = false;
 			do {
 				Q_EMIT q->aboutToBlock();
-				event_base_loop(this->m_base, EVLOOP_ONCE);
+				ev_loop(this->m_base, EVLOOP_ONESHOT);
 
 				timers.unite(this->m_timers_to_reactivate);
 				this->m_timers_to_reactivate.clear();
@@ -105,7 +89,7 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 		}
 	}
 	else {
-		event_base_loop(this->m_base, EVLOOP_ONCE | EVLOOP_NONBLOCK);
+		ev_loop(this->m_base, EVLOOP_ONESHOT | EVLOOP_NONBLOCK);
 		Q_EMIT q->awake(); // If removed, tst_QEventLoop::processEvents() fails
 		result |= this->m_seen_event;
 	}
@@ -120,16 +104,17 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 	if (!timers.isEmpty()) {
 		struct timeval now;
 		struct timeval delta;
-		evutil_gettimeofday(&now, 0);
+		gettimeofday(&now, 0);
 		QSet<int>::ConstIterator it = timers.constBegin();
 		while (it != timers.constEnd()) {
 			TimerHash::Iterator tit = this->m_timers.find(*it);
 			if (tit != this->m_timers.end()) {
 				EventDispatcherLibEvPrivate::TimerInfo* info = tit.value();
 
-				if (!event_pending(info->ev, EV_TIMEOUT, 0)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
+				if (!ev_is_pending(&info->ev) && !ev_is_active(&info->ev)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
 					EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
-					event_add(info->ev, &delta);
+					ev_timer_set(&info->ev, delta.tv_sec + delta.tv_usec / 1.0E6, 0);
+					ev_timer_start(this->m_base, &info->ev);
 				}
 			}
 
@@ -149,10 +134,10 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 	return result;
 }
 
-void EventDispatcherLibEvPrivate::wake_up_handler(int fd, short int events, void* arg)
+void EventDispatcherLibEvPrivate::wake_up_handler(struct ev_loop* loop, struct ev_io* w, int revents)
 {
-	Q_UNUSED(events)
-	Q_UNUSED(arg)
+	Q_UNUSED(loop)
+	Q_UNUSED(revents)
 
 #ifdef HAVE_SYS_EVENTFD_H
 	quint64 t;
@@ -161,7 +146,7 @@ void EventDispatcherLibEvPrivate::wake_up_handler(int fd, short int events, void
 	}
 #else
 	char buf[256];
-	while (safe_read(fd, buf, sizeof(buf)) > 0) {
+	while (safe_read(w->fd, buf, sizeof(buf)) > 0) {
 		// Do nothing
 	}
 #endif

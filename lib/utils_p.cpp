@@ -26,13 +26,14 @@ using namespace libcsupplement;
 #	define THREADSAFE_CLOEXEC_SUPPORTED 0
 #endif
 
-void event_log_callback(int severity, const char* msg)
+static inline void make_closeonexec(int fd)
 {
-	switch (severity) {
-		case _EVENT_LOG_WARN: qWarning("%s", msg); break;
-		case _EVENT_LOG_ERR:  qCritical("%s", msg); break;
-		default:              qDebug("%s", msg); break;
-	}
+	::fcntl(fd, F_SETFD, FD_CLOEXEC);
+}
+
+static inline void make_nonblocking(int fd)
+{
+	::fcntl(fd, F_SETFL, ::fcntl(fd, F_GETFL) | O_NONBLOCK);
 }
 
 int make_tco(int* readfd, int* writefd)
@@ -47,8 +48,8 @@ int make_tco(int* readfd, int* writefd)
 		if (EINVAL == errno && flags) {
 			res = eventfd(0, 0);
 			if (res != -1) {
-				evutil_make_socket_closeonexec(res);
-				evutil_make_socket_nonblocking(res);
+				make_closeonexec(res);
+				make_nonblocking(res);
 			}
 		}
 	}
@@ -79,11 +80,11 @@ int make_tco(int* readfd, int* writefd)
 		return -1;
 	}
 
-	evutil_make_socket_closeonexec(pipefd[0]);
-	evutil_make_socket_nonblocking(pipefd[0]);
+	make_closeonexec(pipefd[0]);
+	make_nonblocking(pipefd[0]);
 
-	evutil_make_socket_closeonexec(pipefd[1]);
-	evutil_make_socket_nonblocking(pipefd[1]);
+	make_closeonexec(pipefd[1]);
+	make_nonblocking(pipefd[1]);
 
 	*readfd  = pipefd[0];
 	*writefd = pipefd[1];
