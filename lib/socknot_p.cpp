@@ -18,7 +18,7 @@ void EventDispatcherLibEvPrivate::registerSocketNotifier(QSocketNotifier* notifi
 			return;
 	}
 
-	SocketNotifierInfo data;
+	EventDispatcherLibEvPrivate::SocketNotifierInfo data;
 	data.sn = notifier;
 	data.ev = new struct ev_io;
 	ev_io_init(data.ev, EventDispatcherLibEvPrivate::socket_notifier_callback, sockfd, what);
@@ -33,7 +33,7 @@ void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* noti
 	int sockfd = notifier->socket();
 	SocketNotifierHash::Iterator it = this->m_notifiers.find(sockfd);
 	while (it != this->m_notifiers.end() && it.key() == sockfd) {
-		SocketNotifierInfo& data = it.value();
+		EventDispatcherLibEvPrivate::SocketNotifierInfo& data = it.value();
 		if (data.sn == notifier) {
 			ev_io_stop(this->m_base, data.ev);
 			delete data.ev;
@@ -53,7 +53,7 @@ void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop,
 	disp->m_seen_event = true;
 	SocketNotifierHash::Iterator it = disp->m_notifiers.find(w->fd);
 	while (it != disp->m_notifiers.end() && it.key() == w->fd) {
-		SocketNotifierInfo& data = it.value();
+		EventDispatcherLibEvPrivate::SocketNotifierInfo& data = it.value();
 		QSocketNotifier::Type type = data.sn->type();
 
 		if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
@@ -69,7 +69,7 @@ void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 {
 	SocketNotifierHash::Iterator it = this->m_notifiers.begin();
 	while (it != this->m_notifiers.end()) {
-		SocketNotifierInfo& data = it.value();
+		EventDispatcherLibEvPrivate::SocketNotifierInfo& data = it.value();
 		if (disable) {
 			ev_io_stop(this->m_base, data.ev);
 		}
@@ -86,7 +86,7 @@ void EventDispatcherLibEvPrivate::killSocketNotifiers(void)
 	if (!this->m_notifiers.isEmpty()) {
 		SocketNotifierHash::Iterator it = this->m_notifiers.begin();
 		while (it != this->m_notifiers.end()) {
-			SocketNotifierInfo& data = it.value();
+			EventDispatcherLibEvPrivate::SocketNotifierInfo& data = it.value();
 			ev_io_stop(this->m_base, data.ev);
 			delete data.ev;
 			++it;

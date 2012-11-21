@@ -8,6 +8,7 @@ EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* c
 	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
 {
 	this->m_base = ev_loop_new(EVFLAG_AUTO);
+	Q_CHECK_PTR(this->m_base != 0);
 
 	if (-1 == make_tco(&this->m_pipe_read, &this->m_pipe_write)) {
 		qFatal("%s: Fatal: Unable to create thread communication object", Q_FUNC_INFO);
