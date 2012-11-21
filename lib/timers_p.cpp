@@ -303,3 +303,18 @@ void EventDispatcherLibEvPrivate::disableTimers(bool disable)
 		++it;
 	}
 }
+
+void EventDispatcherLibEvPrivate::killTimers(void)
+{
+	if (!this->m_timers.isEmpty()) {
+		TimerHash::Iterator it = this->m_timers.begin();
+		while (it != this->m_timers.end()) {
+			EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
+			ev_timer_stop(this->m_base, &info->ev);
+			delete info;
+			++it;
+		}
+
+		this->m_timers.clear();
+	}
+}

@@ -34,6 +34,9 @@ EventDispatcherLibEvPrivate::~EventDispatcherLibEvPrivate(void)
 
 	ev_io_stop(this->m_base, &this->m_wakeup);
 
+	this->killTimers();
+	this->killSocketNotifiers();
+
 	if (this->m_base) {
 		ev_loop_destroy(this->m_base);
 		this->m_base = 0;

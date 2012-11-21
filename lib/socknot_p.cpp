@@ -80,3 +80,18 @@ void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 		++it;
 	}
 }
+
+void EventDispatcherLibEvPrivate::killSocketNotifiers(void)
+{
+	if (!this->m_notifiers.isEmpty()) {
+		SocketNotifierHash::Iterator it = this->m_notifiers.begin();
+		while (it != this->m_notifiers.end()) {
+			SocketNotifierInfo& data = it.value();
+			ev_io_stop(this->m_base, data.ev);
+			delete data.ev;
+			++it;
+		}
+
+		this->m_notifiers.clear();
+	}
+}

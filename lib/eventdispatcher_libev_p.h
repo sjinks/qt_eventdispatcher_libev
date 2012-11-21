@@ -74,7 +74,9 @@ private:
 	static void wake_up_handler(struct ev_loop* loop, struct ev_io* w, int revents);
 
 	void disableSocketNotifiers(bool disable);
+	void killSocketNotifiers(void);
 	void disableTimers(bool disable);
+	void killTimers(void);
 };
 
 #endif // EVENTDISPATCHER_LIBEV_P_H
