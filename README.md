@@ -1,10 +1,7 @@
-WARNING, WORK IN PROGRESS, DO NOT USE!!!
-========================================
-
 qt_eventdispatcher_libev
 ========================
 
-libev based event dispatcher for Qt
+LibEv based event dispatcher for Qt
 
 **Features**
 * very fast :-)
