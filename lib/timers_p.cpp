@@ -174,7 +174,6 @@ void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::T
 	gettimeofday(&now, 0);
 
 	EventDispatcherLibEvPrivate::TimerInfo* info = new EventDispatcherLibEvPrivate::TimerInfo;
-	info->self     = this;
 	info->timerId  = timerId;
 	info->interval = interval;
 	info->type     = type;
@@ -275,14 +274,14 @@ int EventDispatcherLibEvPrivate::remainingTime(int timerId) const
 
 void EventDispatcherLibEvPrivate::timer_callback(struct ev_loop* loop, struct ev_timer* w, int revents)
 {
-	Q_UNUSED(loop)
 	Q_UNUSED(revents)
 
+	EventDispatcherLibEvPrivate* self            = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
 	EventDispatcherLibEvPrivate::TimerInfo* info = reinterpret_cast<EventDispatcherLibEvPrivate::TimerInfo*>(w->data);
-	info->self->m_seen_event = true;
+	self->m_seen_event = true;
 
 	// Timer can be reactivated only after its callback finishes; processEvents() will take care of this
-	info->self->m_timers_to_reactivate.insert(info->timerId);
+	self->m_timers_to_reactivate.insert(info->timerId);
 
 	QTimerEvent* event = new QTimerEvent(info->timerId);
 	QCoreApplication::postEvent(info->object, event);

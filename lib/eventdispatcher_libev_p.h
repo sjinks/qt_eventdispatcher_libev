@@ -34,13 +34,7 @@ public:
 	QList<QAbstractEventDispatcher::TimerInfo> registeredTimers(QObject* object) const;
 	int remainingTime(int timerId) const;
 
-	struct SocketNotifierInfo {
-		QSocketNotifier* sn;
-		struct ev_io* ev;
-	};
-
 	struct TimerInfo {
-		EventDispatcherLibEvPrivate* self;
 		QObject* object;
 		struct ev_timer ev;
 		struct timeval when;
@@ -49,7 +43,7 @@ public:
 		Qt::TimerType type;
 	};
 
-	typedef QMultiHash<int, SocketNotifierInfo> SocketNotifierHash;
+	typedef QMultiHash<int, struct ev_io*> SocketNotifierHash;
 	typedef QHash<int, TimerInfo*> TimerHash;
 
 private:
