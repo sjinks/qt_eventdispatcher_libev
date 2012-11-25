@@ -90,7 +90,7 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 	// Now that all event handlers have finished (and we returned from the recusrion), reactivate all pending timers
 	if (!timers.isEmpty()) {
 		struct timeval now;
-		struct timeval delta;
+
 		gettimeofday(&now, 0);
 		QSet<int>::ConstIterator it = timers.constBegin();
 		while (it != timers.constEnd()) {
@@ -99,8 +99,8 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 				EventDispatcherLibEvPrivate::TimerInfo* info = tit.value();
 
 				if (!ev_is_pending(&info->ev) && !ev_is_active(&info->ev)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
-					EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
-					ev_timer_set(&info->ev, delta.tv_sec + delta.tv_usec / 1.0E6, 0);
+					ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
+					ev_timer_set(&info->ev, delta, 0);
 					ev_timer_start(this->m_base, &info->ev);
 				}
 			}

@@ -114,7 +114,7 @@ void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLib
 	Q_ASSERT(timercmp(&now, &when, <=));
 }
 
-void EventDispatcherLibEvPrivate::calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta)
+ev_tstamp EventDispatcherLibEvPrivate::calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now)
 {
 	struct timeval tv_interval;
 	struct timeval when;
@@ -156,7 +156,7 @@ void EventDispatcherLibEvPrivate::calculateNextTimeout(EventDispatcherLibEvPriva
 		EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(info, now, when);
 	}
 
-	timersub(&when, &now, &delta);
+	return (when.tv_sec - now.tv_sec) + (when.tv_usec - now.tv_usec) * 1.0E-6;
 }
 
 void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::TimerType type, QObject* object)
@@ -181,10 +181,9 @@ void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::T
 		}
 	}
 
-	struct timeval delta;
-	EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
+	ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
 
-	ev_timer_init(&info->ev, EventDispatcherLibEvPrivate::timer_callback, delta.tv_sec + delta.tv_usec / 1.0E6, 0);
+	ev_timer_init(&info->ev, EventDispatcherLibEvPrivate::timer_callback, delta, 0);
 	info->ev.data = info;
 	ev_timer_start(this->m_base, &info->ev);
 	this->m_timers.insert(timerId, info);
@@ -294,9 +293,8 @@ void EventDispatcherLibEvPrivate::disableTimers(bool disable)
 			ev_timer_stop(this->m_base, &info->ev);
 		}
 		else {
-			struct timeval delta;
-			EventDispatcherLibEvPrivate::calculateNextTimeout(info, now, delta);
-			ev_timer_set(&info->ev, delta.tv_sec + delta.tv_usec / 1.0E6, 0);
+			ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
+			ev_timer_set(&info->ev, delta, 0);
 			ev_timer_start(this->m_base, &info->ev);
 		}
 

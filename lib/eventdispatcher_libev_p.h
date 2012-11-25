@@ -67,7 +67,7 @@ private:
 	bool m_seen_event;
 
 	static void calculateCoarseTimerTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when);
-	static void calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& delta);
+	static ev_tstamp calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now);
 
 	static void socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents);
 	static void timer_callback(struct ev_loop* loop, struct ev_timer* w, int revents);
