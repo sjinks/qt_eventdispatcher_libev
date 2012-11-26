@@ -191,9 +191,10 @@ void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::T
 
 	ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
 
-	ev_timer_init(&info->ev, EventDispatcherLibEvPrivate::timer_callback, delta, 0);
+	struct ev_timer* tmp = &info->ev;
+	ev_timer_init(tmp, EventDispatcherLibEvPrivate::timer_callback, delta, 0);
 	info->ev.data = info;
-	ev_timer_start(this->m_base, &info->ev);
+	ev_timer_start(this->m_base, tmp);
 	this->m_timers.insert(timerId, info);
 }
 
@@ -257,7 +258,8 @@ int EventDispatcherLibEvPrivate::remainingTime(int timerId) const
 	if (it != this->m_timers.end()) {
 		const EventDispatcherLibEvPrivate::TimerInfo* info = it.value();
 
-		if (ev_is_pending(&info->ev) || ev_is_active(&info->ev)) {
+		const struct ev_timer* tmp = &info->ev;
+		if (ev_is_pending(tmp) || ev_is_active(tmp)) {
 			ev_tstamp now  = ev_now(this->m_base);
 			ev_tstamp when = info->when.tv_sec + info->when.tv_usec / 1.0E6;
 
@@ -302,8 +304,9 @@ void EventDispatcherLibEvPrivate::disableTimers(bool disable)
 		}
 		else {
 			ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
-			ev_timer_set(&info->ev, delta, 0);
-			ev_timer_start(this->m_base, &info->ev);
+			struct ev_timer* tmp = &info->ev;
+			ev_timer_set(tmp, delta, 0);
+			ev_timer_start(this->m_base, tmp);
 		}
 
 		++it;

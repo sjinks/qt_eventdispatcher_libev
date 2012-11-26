@@ -11,7 +11,8 @@ EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* c
 
 	ev_set_userdata(this->m_base, this);
 
-	ev_async_init(&this->m_wakeup, EventDispatcherLibEvPrivate::wake_up_handler);
+	struct ev_async* tmp = &this->m_wakeup;
+	ev_async_init(tmp, EventDispatcherLibEvPrivate::wake_up_handler);
 	ev_async_start(this->m_base, &this->m_wakeup);
 }
 
@@ -99,10 +100,11 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 			if (tit != this->m_timers.end()) {
 				EventDispatcherLibEvPrivate::TimerInfo* info = tit.value();
 
-				if (!ev_is_pending(&info->ev) && !ev_is_active(&info->ev)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
+				struct ev_timer* tmp = &info->ev;
+				if (!ev_is_pending(tmp) && !ev_is_active(tmp)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
 					ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
-					ev_timer_set(&info->ev, delta, 0);
-					ev_timer_start(this->m_base, &info->ev);
+					ev_timer_set(tmp, delta, 0);
+					ev_timer_start(this->m_base, tmp);
 				}
 			}
 
