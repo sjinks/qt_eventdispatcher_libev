@@ -5,7 +5,18 @@ CONFIG    += staticlib create_prl create_pc release
 HEADERS   += eventdispatcher_libev.h eventdispatcher_libev_p.h
 SOURCES   += eventdispatcher_libev.cpp eventdispatcher_libev_p.cpp timers_p.cpp socknot_p.cpp
 
-LIBS      += -lev
+unix {
+	system('pkg-config --exists libev') {
+		CONFIG    += link_pkgconfig
+		PKGCONFIG += libev
+	}
+	else {
+		LIBS += -lev
+	}
+}
+else {
+	LIBS += -lev
+}
 
 target.path   = /usr/lib
 headers.path  = /usr/include
