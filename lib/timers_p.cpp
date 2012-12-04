@@ -2,6 +2,10 @@
 #include <QtCore/QEvent>
 #include "eventdispatcher_libev_p.h"
 
+#ifdef WIN32
+#	include "win32_utils.h"
+#endif
+
 void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when)
 {
 	Q_ASSERT(info->interval > 20);

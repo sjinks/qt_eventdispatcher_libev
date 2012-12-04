@@ -2,6 +2,10 @@
 #include "eventdispatcher_libev.h"
 #include "eventdispatcher_libev_p.h"
 
+#ifdef WIN32
+#	include "win32_utils.h"
+#endif
+
 EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q)
 	: q_ptr(q), m_interrupt(false), m_base(0), m_wakeup(), m_wakeups(),
 	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
