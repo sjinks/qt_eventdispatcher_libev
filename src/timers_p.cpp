@@ -25,10 +25,10 @@ void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLib
 	//
 	// The objective is to make most timers wake up at the same time, thereby reducing CPU wakeups.
 
-	uint interval     = uint(info->interval);
-	uint msec         = info->when.tv_usec / 1000;
-	uint max_rounding = interval / 20; // 5%
-	when              = info->when;
+	int interval     = info->interval;
+	int msec         = static_cast<int>(info->when.tv_usec / 1000);
+	int max_rounding = interval / 20; // 5%
+	when             = info->when;
 
 	if (interval < 100 && (interval % 25) != 0) {
 		if (interval < 50) {
@@ -41,8 +41,8 @@ void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLib
 		}
 	}
 	else {
-		uint min = uint(qMax<int>(0, msec - max_rounding));
-		uint max = qMin(1000u, msec + max_rounding);
+		int min = qMax<int>(0, msec - max_rounding);
+		int max = qMin(1000, msec + max_rounding);
 
 		bool done = false;
 
@@ -57,7 +57,7 @@ void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLib
 		}
 
 		if (!done) {
-			uint boundary;
+			int boundary;
 
 			// if the interval is a multiple of 500 ms and > 5000 ms, always round towards a round-to-the-second
 			// if the interval is a multiple of 500 ms, round towards the nearest multiple of 500 ms
@@ -91,9 +91,9 @@ void EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(EventDispatcherLib
 			}
 
 			if (!done) {
-				uint base   = uint(msec / boundary) * boundary;
-				uint middle = base + boundary / 2;
-				msec        = (msec < middle) ? qMax(base, min) : qMin(base + boundary, max);
+				int base   = (msec / boundary) * boundary;
+				int middle = base + boundary / 2;
+				msec       = (msec < middle) ? qMax(base, min) : qMin(base + boundary, max);
 			}
 		}
 	}
@@ -169,7 +169,7 @@ ev_tstamp EventDispatcherLibEvPrivate::calculateNextTimeout(EventDispatcherLibEv
 		EventDispatcherLibEvPrivate::calculateCoarseTimerTimeout(info, now, when);
 	}
 
-	return (when.tv_sec - now.tv_sec) + (when.tv_usec - now.tv_usec) * 1.0E-6;
+	return static_cast<ev_tstamp>(when.tv_sec - now.tv_sec) + static_cast<ev_tstamp>(when.tv_usec - now.tv_usec) * 1.0E-6;
 }
 
 void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::TimerType type, QObject* object)
@@ -265,13 +265,13 @@ int EventDispatcherLibEvPrivate::remainingTime(int timerId) const
 		const struct ev_timer* tmp = &info->ev;
 		if (ev_is_pending(tmp) || ev_is_active(tmp)) {
 			ev_tstamp now  = ev_now(this->m_base);
-			ev_tstamp when = info->when.tv_sec + info->when.tv_usec / 1.0E6;
+			ev_tstamp when = static_cast<ev_tstamp>(info->when.tv_sec) + static_cast<ev_tstamp>(info->when.tv_usec) * 1.0E-6;
 
 			if (now > when) {
 				return 0;
 			}
 
-			return (when - now) * 1000;
+			return static_cast<int>((when - now) * 1000);
 		}
 	}
 
