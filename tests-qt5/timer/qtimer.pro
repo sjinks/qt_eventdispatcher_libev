@@ -1,8 +1,8 @@
 CONFIG  += testcase
-TARGET   = tst_qtimer
-QT       = core testlib
-SOURCES  = tst_qtimer.cpp
+TARGET = tst_qtimer
+QT = core testlib
+SOURCES = tst_qtimer.cpp
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0
 
-DESTDIR  = ../
+DESTDIR    = ../
 include(../common.pri)
