@@ -6,7 +6,7 @@ LibEv based event dispatcher for Qt
 * very fast :-)
 * compatibility with Qt4 and Qt 5
 * does not use any private Qt headers
-* passes Qt 5 event dispatcher, event loop, timer and socket notifier tests
+* passes Qt 4 and Qt 5 event dispatcher, event loop, timer and socket notifier tests
 
 **Unsupported features**
 * `QSocketNotifier::Exception` (libev offers no support for this)
