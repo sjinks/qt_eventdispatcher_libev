@@ -42,7 +42,7 @@
 
 #include <qtest.h>
 #include <qtesteventloop.h>
-#include "eventdispatcher_epoll.h"
+#include "eventdispatcher_libev.h"
 
 class PingPong : public QObject
 {
@@ -187,7 +187,7 @@ void EventsBench::postEvent()
 
 int main(int argc, char** argv)
 {
-    EventDispatcherEPoll e;
+    EventDispatcherLibEv e;
     QCoreApplication app(argc, argv);
     EventsBench t;
     return QTest::qExec(&t, argc, argv);

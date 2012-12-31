@@ -59,7 +59,7 @@
 #endif
 #include <limits>
 
-#include "eventdispatcher_epoll.h"
+#include "eventdispatcher_libev.h"
 
 class tst_QSocketNotifier : public QObject
 {
@@ -358,7 +358,7 @@ void tst_QSocketNotifier::bogusFds()
 
 int main(int argc, char** argv)
 {
-    EventDispatcherEPoll e;
+    EventDispatcherLibEv e;
     QCoreApplication app(argc, argv);
     tst_QSocketNotifier t;
     return QTest::qExec(&t, argc, argv);
