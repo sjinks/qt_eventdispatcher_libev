@@ -37,6 +37,9 @@ public:
 	virtual void interrupt(void);
 	virtual void flush(void);
 
+protected:
+	EventDispatcherLibEv(EventDispatcherLibEvPrivate& dd, QObject* parent = 0);
+
 private:
 	Q_DISABLE_COPY(EventDispatcherLibEv)
 	Q_DECLARE_PRIVATE(EventDispatcherLibEv)

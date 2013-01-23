@@ -173,3 +173,8 @@ void EventDispatcherLibEv::interrupt(void)
 void EventDispatcherLibEv::flush(void)
 {
 }
+
+EventDispatcherLibEv::EventDispatcherLibEv(EventDispatcherLibEvPrivate& dd, QObject* parent)
+	: QAbstractEventDispatcher(parent), d_ptr(&dd)
+{
+}
