@@ -12,13 +12,13 @@ struct timezone
 Q_DECL_HIDDEN int gettimeofday(struct timeval* tv, struct timezone* tz);
 
 #ifndef timeradd
-#define timeradd(tvp, uvp, vvp)                           \
-	do {                                                  \
+#define timeradd(tvp, uvp, vvp)                                   \
+	do {                                                      \
 		(vvp)->tv_sec  = (tvp)->tv_sec  + (uvp)->tv_sec;  \
 		(vvp)->tv_usec = (tvp)->tv_usec + (uvp)->tv_usec; \
 		if ((vvp)->tv_usec >= 1000000) {                  \
-			++(vvp)->tv_sec;                              \
-			(vvp)->tv_usec -= 1000000;                    \
+			++(vvp)->tv_sec;                          \
+			(vvp)->tv_usec -= 1000000;                \
 		}                                                 \
 	} while (0)
 #endif
