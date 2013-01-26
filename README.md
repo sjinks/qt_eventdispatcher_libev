@@ -15,7 +15,7 @@ libev-based event dispatcher for Qt
 
 ## Requirements
 * libev >= 4.0
-* Qt >= 4.8.0 (may work with an older Qt but this has not been tested)
+* Qt >= 4.8.0 (may work with an older Qt (4.6) but this has not been tested)
 
 
 ## Build
