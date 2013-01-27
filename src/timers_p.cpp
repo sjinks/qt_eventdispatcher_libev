@@ -1,5 +1,6 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEvent>
+#include <QtCore/QPair>
 #include "eventdispatcher_libev_p.h"
 
 #ifdef WIN32

@@ -1,3 +1,4 @@
+#include <QtCore/QPair>
 #include <QtCore/QSocketNotifier>
 #include <QtCore/QThread>
 #include "eventdispatcher_libev.h"
@@ -10,6 +11,10 @@ EventDispatcherLibEv::EventDispatcherLibEv(QObject* parent)
 
 EventDispatcherLibEv::~EventDispatcherLibEv(void)
 {
+#if QT_VERSION < 0x040600
+	delete this->d_ptr;
+	this->d_ptr = 0;
+#endif
 }
 
 bool EventDispatcherLibEv::processEvents(QEventLoop::ProcessEventsFlags flags)
@@ -173,7 +178,10 @@ void EventDispatcherLibEv::wakeUp(void)
 {
 	Q_D(EventDispatcherLibEv);
 
-	if (d->m_wakeups.testAndSetAcquire(0, 1)) {
+#if QT_VERSION >= 0x040400
+	if (d->m_wakeups.testAndSetAcquire(0, 1))
+#endif
+	{
 		ev_async_send(d->m_base, &d->m_wakeup);
 	}
 }

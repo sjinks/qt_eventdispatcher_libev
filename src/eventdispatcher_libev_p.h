@@ -3,11 +3,16 @@
 
 #include <qplatformdefs.h>
 #include <QtCore/QAbstractEventDispatcher>
-#include <QtCore/QAtomicInt>
 #include <QtCore/QHash>
 #include <QtCore/QMultiHash>
 #include <QtCore/QSet>
 #include <ev.h>
+
+#if QT_VERSION >= 0x040400
+#	include <QtCore/QAtomicInt>
+#endif
+
+#include "qt4compat.h"
 
 #if QT_VERSION < 0x050000
 namespace Qt { // Sorry
@@ -54,7 +59,9 @@ private:
 	bool m_interrupt;
 	struct ev_loop* m_base;
 	struct ev_async m_wakeup;
+#if QT_VERSION >= 0x040400
 	QAtomicInt m_wakeups;
+#endif
 	SocketNotifierHash m_notifiers;
 	TimerHash m_timers;
 	QSet<int> m_timers_to_reactivate;

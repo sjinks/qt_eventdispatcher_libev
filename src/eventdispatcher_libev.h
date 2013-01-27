@@ -48,7 +48,11 @@ protected:
 private:
 	Q_DISABLE_COPY(EventDispatcherLibEv)
 	Q_DECLARE_PRIVATE(EventDispatcherLibEv)
+#if QT_VERSION >= 0x040600
 	QScopedPointer<EventDispatcherLibEvPrivate> d_ptr;
+#else
+	EventDispatcherLibEvPrivate* d_ptr;
+#endif
 };
 
 #endif // EVENTDISPATCHER_LIBEV_H

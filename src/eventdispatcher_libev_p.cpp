@@ -7,7 +7,10 @@
 #endif
 
 EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q)
-	: q_ptr(q), m_interrupt(false), m_base(0), m_wakeup(), m_wakeups(),
+	: q_ptr(q), m_interrupt(false), m_base(0), m_wakeup(),
+#if QT_VERSION >= 0x040400
+	  m_wakeups(),
+#endif
 	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
 {
 	this->m_base = ev_loop_new(EVFLAG_AUTO);
@@ -133,8 +136,12 @@ void EventDispatcherLibEvPrivate::wake_up_handler(struct ev_loop* loop, struct e
 	Q_UNUSED(w)
 	Q_UNUSED(revents)
 
+#if QT_VERSION >= 0x040400
 	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
 	if (!disp->m_wakeups.testAndSetRelease(1, 0)) {
 		qCritical("%s: internal error, wakeUps.testAndSetRelease(1, 0) failed!", Q_FUNC_INFO);
 	}
+#else
+	Q_UNUSED(loop)
+#endif
 }
