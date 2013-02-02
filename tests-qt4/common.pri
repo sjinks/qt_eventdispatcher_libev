@@ -1,4 +1,8 @@
-LIBS           += -L$$PWD/../lib -leventdispatcher_libev
-INCLUDEPATH    += $$PWD/../src
-DEPENDPATH     += $$PWD/../src
-PRE_TARGETDEPS += $$PWD/../lib/libeventdispatcher_libev.a
+LIBS        += -L$$OUT_PWD/$$DESTDIR/../lib -leventdispatcher_libev
+INCLUDEPATH += $$PWD/../src
+DEPENDPATH  += $$PWD/../src
+
+unix:PRE_TARGETDEPS += $$DESTDIR/../lib/libeventdispatcher_libev.a
+
+CONFIG += qtestlib console link_prl
+CONFIG -= app_bundle
