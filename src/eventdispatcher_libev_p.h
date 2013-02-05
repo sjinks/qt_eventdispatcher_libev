@@ -5,7 +5,7 @@
 #include <QtCore/QAbstractEventDispatcher>
 #include <QtCore/QHash>
 #include <QtCore/QMultiHash>
-#include <QtCore/QSet>
+#include <QtCore/QPointer>
 #include <ev.h>
 
 #if QT_VERSION >= 0x040400
@@ -14,6 +14,25 @@
 
 #include "qt4compat.h"
 
+struct TimerInfo {
+	QObject* object;
+	struct ev_timer ev;
+	struct timeval when;
+	int timerId;
+	int interval;
+	Qt::TimerType type;
+};
+
+struct ZeroTimer {
+	QObject* object;
+	bool active;
+};
+
+Q_DECLARE_TYPEINFO(TimerInfo, Q_PRIMITIVE_TYPE);
+Q_DECLARE_TYPEINFO(ZeroTimer, Q_PRIMITIVE_TYPE);
+
+Q_DECL_HIDDEN ev_tstamp calculateNextTimeout(TimerInfo* info, const struct timeval& now);
+
 class EventDispatcherLibEv;
 
 class Q_DECL_HIDDEN EventDispatcherLibEvPrivate {
@@ -21,25 +40,21 @@ public:
 	EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q);
 	~EventDispatcherLibEvPrivate(void);
 	bool processEvents(QEventLoop::ProcessEventsFlags flags);
+	bool processZeroTimers(void);
 	void registerSocketNotifier(QSocketNotifier* notifier);
 	void unregisterSocketNotifier(QSocketNotifier* notifier);
 	void registerTimer(int timerId, int interval, Qt::TimerType type, QObject* object);
+	void registerZeroTimer(int timerId, QObject* object);
 	bool unregisterTimer(int timerId);
 	bool unregisterTimers(QObject* object);
 	QList<QAbstractEventDispatcher::TimerInfo> registeredTimers(QObject* object) const;
 	int remainingTime(int timerId) const;
 
-	struct TimerInfo {
-		QObject* object;
-		struct ev_timer ev;
-		struct timeval when;
-		int timerId;
-		int interval;
-		Qt::TimerType type;
-	};
-
 	typedef QMultiHash<int, struct ev_io*> SocketNotifierHash;
 	typedef QHash<int, TimerInfo*> TimerHash;
+	typedef QPair<QPointer<QObject>, QEvent*> PendingEvent;
+	typedef QList<PendingEvent> EventList;
+	typedef QHash<int, ZeroTimer> ZeroTimerHash;
 
 private:
 	Q_DISABLE_COPY(EventDispatcherLibEvPrivate)
@@ -54,19 +69,17 @@ private:
 #endif
 	SocketNotifierHash m_notifiers;
 	TimerHash m_timers;
-	QSet<int> m_timers_to_reactivate;
-	bool m_seen_event;
-
-	static void calculateCoarseTimerTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now, struct timeval& when);
-	static ev_tstamp calculateNextTimeout(EventDispatcherLibEvPrivate::TimerInfo* info, const struct timeval& now);
+	EventList m_event_list;
+	ZeroTimerHash m_zero_timers;
+	bool m_awaken;
 
 	static void socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents);
 	static void timer_callback(struct ev_loop* loop, struct ev_timer* w, int revents);
 	static void wake_up_handler(struct ev_loop* loop, struct ev_async* w, int revents);
 
-	void disableSocketNotifiers(bool disable);
+	bool disableSocketNotifiers(bool disable);
 	void killSocketNotifiers(void);
-	void disableTimers(bool disable);
+	bool disableTimers(bool disable);
 	void killTimers(void);
 };
 

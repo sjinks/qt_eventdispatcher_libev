@@ -11,7 +11,7 @@ EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* c
 #if QT_VERSION >= 0x040400
 	  m_wakeups(),
 #endif
-	  m_notifiers(), m_timers(), m_timers_to_reactivate(), m_seen_event(false)
+	  m_notifiers(), m_timers(), m_event_list(), m_zero_timers(), m_awaken(false)
 {
 	this->m_base = ev_loop_new(EVFLAG_AUTO);
 	Q_CHECK_PTR(this->m_base != 0);
@@ -25,12 +25,12 @@ EventDispatcherLibEvPrivate::EventDispatcherLibEvPrivate(EventDispatcherLibEv* c
 
 EventDispatcherLibEvPrivate::~EventDispatcherLibEvPrivate(void)
 {
-	ev_async_stop(this->m_base, &this->m_wakeup);
-
-	this->killTimers();
-	this->killSocketNotifiers();
-
 	if (this->m_base) {
+		ev_async_stop(this->m_base, &this->m_wakeup);
+
+		this->killTimers();
+		this->killSocketNotifiers();
+
 		ev_loop_destroy(this->m_base);
 		this->m_base = 0;
 	}
@@ -40,94 +40,121 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 {
 	Q_Q(EventDispatcherLibEv);
 
-	Q_ASSERT(this->m_timers_to_reactivate.isEmpty());
+	const bool exclude_notifiers = (flags & QEventLoop::ExcludeSocketNotifiers);
+	const bool exclude_timers    = (flags & QEventLoop::X11ExcludeTimers);
 
-	bool exclude_notifiers = (flags & QEventLoop::ExcludeSocketNotifiers);
-	bool exclude_timers    = (flags & QEventLoop::X11ExcludeTimers);
+	exclude_notifiers && this->disableSocketNotifiers(true);
+	exclude_timers    && this->disableTimers(true);
 
-	if (exclude_notifiers) {
-		this->disableSocketNotifiers(true);
-	}
+	this->m_interrupt = false;
+	this->m_awaken    = false;
 
-	if (exclude_timers) {
-		this->disableTimers(true);
-	}
+	bool result = q->hasPendingEvents();
 
-	bool result = false;
-	this->m_seen_event = false;
+	Q_EMIT q->awake();
+#if QT_VERSION < 0x040500
+	QCoreApplication::sendPostedEvents(0, (flags & QEventLoop::DeferredDeletion) ? -1 : 0);
+#else
+	QCoreApplication::sendPostedEvents();
+#endif
 
-	if (q->hasPendingEvents()) {
-		QCoreApplication::sendPostedEvents();
-		result = true;
-		flags &= ~QEventLoop::WaitForMoreEvents;
-	}
+	bool can_wait = !this->m_interrupt && (flags & QEventLoop::WaitForMoreEvents) && !result;
+	int f         = EVLOOP_NONBLOCK;
 
-	QSet<int> timers;
-
-	if ((flags & QEventLoop::WaitForMoreEvents)) {
-		if (!this->m_interrupt) {
-			this->m_seen_event = false;
-			do {
-				Q_EMIT q->aboutToBlock();
-				ev_loop(this->m_base, EVLOOP_ONESHOT);
-
-				timers.unite(this->m_timers_to_reactivate);
-				this->m_timers_to_reactivate.clear();
-
-				if (!this->m_seen_event) {
-					// When this->m_seen_event == false, this means we have been woken up by wake().
-					// Send all potsed events here or tst_QEventLoop::execAfterExit() freezes
-					QCoreApplication::sendPostedEvents(); // an event handler invoked by sendPostedEvents() may invoke processEvents() again
-				}
-
-				Q_EMIT q->awake();
-			} while (!this->m_interrupt && !this->m_seen_event);
+	if (!this->m_interrupt) {
+		if (!exclude_timers && this->m_zero_timers.size() > 0) {
+			result |= this->processZeroTimers();
+			if (result) {
+				can_wait = false;
+			}
 		}
-	}
-	else {
-		ev_loop(this->m_base, EVLOOP_ONESHOT | EVLOOP_NONBLOCK);
-		Q_EMIT q->awake(); // If removed, tst_QEventLoop::processEvents() fails
-		result |= this->m_seen_event;
-	}
 
-	timers.unite(this->m_timers_to_reactivate);
-	this->m_timers_to_reactivate.clear();
+		if (can_wait) {
+			Q_EMIT q->aboutToBlock();
+			f = EVLOOP_ONESHOT;
+		}
 
-	result |= this->m_seen_event;
-	QCoreApplication::sendPostedEvents(); // an event handler invoked by sendPostedEvents() may invoke processEvents() again
+		// Work around a bug when libev returns from ev_loop(loop, EVLOOP_ONESHOT) without processing any events
+		do {
+			ev_loop(this->m_base, f);
+		} while (can_wait && !this->m_awaken && !this->m_event_list.size());
 
-	// Now that all event handlers have finished (and we returned from the recusrion), reactivate all pending timers
-	if (!timers.isEmpty()) {
+#if QT_VERSION >= 0x040800
+		EventList list;
+		this->m_event_list.swap(list);
+#else
+		EventList list(this->m_event_list);
+		this->m_event_list.clear();
+#endif
+
+		result |= (list.size() > 0) | this->m_awaken;
+
+		for (int i=0; i<list.size(); ++i) {
+			const PendingEvent& e = list.at(i);
+			if (!e.first.isNull()) {
+				QCoreApplication::sendEvent(e.first, e.second);
+			}
+		}
+
 		struct timeval now;
-
 		gettimeofday(&now, 0);
-		QSet<int>::ConstIterator it = timers.constBegin();
-		while (it != timers.constEnd()) {
-			TimerHash::Iterator tit = this->m_timers.find(*it);
-			if (tit != this->m_timers.end()) {
-				EventDispatcherLibEvPrivate::TimerInfo* info = tit.value();
 
-				struct ev_timer* tmp = &info->ev;
-				if (!ev_is_pending(tmp) && !ev_is_active(tmp)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
-					ev_tstamp delta = EventDispatcherLibEvPrivate::calculateNextTimeout(info, now);
-					ev_timer_set(tmp, delta, 0);
-					ev_timer_start(this->m_base, tmp);
+		// Now that all event handlers have finished (and we returned from the recusrion), reactivate all pending timers
+		for (int i=0; i<list.size(); ++i) {
+			const PendingEvent& e = list.at(i);
+			if (!e.first.isNull() && e.second->type() == QEvent::Timer) {
+				QTimerEvent* te = static_cast<QTimerEvent*>(e.second);
+				TimerHash::Iterator tit = this->m_timers.find(te->timerId());
+				if (tit != this->m_timers.end()) {
+					TimerInfo* info = tit.value();
+
+					struct ev_timer* tmp = &info->ev;
+					if (!ev_is_pending(tmp) && !ev_is_active(tmp)) { // false in tst_QTimer::restartedTimerFiresTooSoon()
+						ev_tstamp delta = calculateNextTimeout(info, now);
+						ev_timer_set(tmp, delta, 0);
+						ev_timer_start(this->m_base, tmp);
+					}
 				}
 			}
 
-			++it;
+			delete e.second;
 		}
 	}
 
-	if (exclude_notifiers) {
-		this->disableSocketNotifiers(false);
+	exclude_notifiers && this->disableSocketNotifiers(false);
+	exclude_timers    && this->disableTimers(false);
+
+	return result;
+}
+
+bool EventDispatcherLibEvPrivate::processZeroTimers(void)
+{
+	bool result    = false;
+	QList<int> ids = this->m_zero_timers.keys();
+
+	for (int i=0; i<ids.size(); ++i) {
+		int tid = ids.at(i);
+		ZeroTimerHash::Iterator it = this->m_zero_timers.find(tid);
+		if (it != this->m_zero_timers.end()) {
+			ZeroTimer& data = it.value();
+			if (data.active) {
+				data.active = false;
+
+				QTimerEvent event(tid);
+				QCoreApplication::sendEvent(data.object, &event);
+				result   = true;
+
+				it = this->m_zero_timers.find(tid);
+				if (it != this->m_zero_timers.end()) {
+					ZeroTimer& data = it.value();
+					if (!data.active) {
+						data.active = true;
+					}
+				}
+			}
+		}
 	}
 
-	if (exclude_timers) {
-		this->disableTimers(false);
-	}
-
-	this->m_interrupt = false;
 	return result;
 }
 
@@ -136,12 +163,12 @@ void EventDispatcherLibEvPrivate::wake_up_handler(struct ev_loop* loop, struct e
 	Q_UNUSED(w)
 	Q_UNUSED(revents)
 
-#if QT_VERSION >= 0x040400
 	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
+	disp->m_awaken = true;
+
+#if QT_VERSION >= 0x040400
 	if (!disp->m_wakeups.testAndSetRelease(1, 0)) {
 		qCritical("%s: internal error, wakeUps.testAndSetRelease(1, 0) failed!", Q_FUNC_INFO);
 	}
-#else
-	Q_UNUSED(loop)
 #endif
 }

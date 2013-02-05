@@ -46,7 +46,7 @@ void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* noti
 void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents)
 {
 	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
-	disp->m_seen_event = true;
+
 	SocketNotifierHash::Iterator it = disp->m_notifiers.find(w->fd);
 	while (it != disp->m_notifiers.end() && it.key() == w->fd) {
 		struct ev_io* data = it.value();
@@ -54,15 +54,15 @@ void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop,
 		QSocketNotifier::Type type = notifier->type();
 
 		if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
-			QEvent* e = new QEvent(QEvent::SockAct);
-			QCoreApplication::postEvent(notifier, e);
+			PendingEvent event(notifier, new QEvent(QEvent::SockAct));
+			disp->m_event_list.append(event);
 		}
 
 		++it;
 	}
 }
 
-void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
+bool EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 {
 	SocketNotifierHash::Iterator it = this->m_notifiers.begin();
 	while (it != this->m_notifiers.end()) {
@@ -76,6 +76,8 @@ void EventDispatcherLibEvPrivate::disableSocketNotifiers(bool disable)
 
 		++it;
 	}
+
+	return true;
 }
 
 void EventDispatcherLibEvPrivate::killSocketNotifiers(void)

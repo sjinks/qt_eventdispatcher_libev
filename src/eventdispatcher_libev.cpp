@@ -36,7 +36,8 @@ void EventDispatcherLibEv::registerSocketNotifier(QSocketNotifier* notifier)
 		qWarning("QSocketNotifier: Internal error: sockfd < 0");
 		return;
 	}
-	else if (notifier->thread() != thread() || thread() != QThread::currentThread()) {
+
+	if (notifier->thread() != thread() || thread() != QThread::currentThread()) {
 		qWarning("QSocketNotifier: socket notifiers cannot be enabled from another thread");
 		return;
 	}
@@ -57,7 +58,8 @@ void EventDispatcherLibEv::unregisterSocketNotifier(QSocketNotifier* notifier)
 		qWarning("QSocketNotifier: Internal error: sockfd < 0");
 		return;
 	}
-	else if (notifier->thread() != thread() || thread() != QThread::currentThread()) {
+
+	if (notifier->thread() != thread() || thread() != QThread::currentThread()) {
 		qWarning("QSocketNotifier: socket notifiers cannot be disabled from another thread");
 		return;
 	}
@@ -101,7 +103,12 @@ void EventDispatcherLibEv::registerTimer(
 #endif
 
 	Q_D(EventDispatcherLibEv);
-	d->registerTimer(timerId, interval, type, object);
+	if (interval) {
+		d->registerTimer(timerId, interval, type, object);
+	}
+	else {
+		d->registerZeroTimer(timerId, object);
+	}
 }
 
 bool EventDispatcherLibEv::unregisterTimer(int timerId)
