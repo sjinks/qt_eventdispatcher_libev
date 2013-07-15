@@ -2,16 +2,18 @@
 
 libev-based event dispatcher for Qt
 
+
 ## Features
 * very fast :-)
 * compatible with Qt 4 and Qt 5
 * does not use any private Qt headers
 * passes Qt 4 and Qt 5 event dispatcher, event loop, timer and socket notifier tests
 
+
 ## Unsupported Features
 * `QSocketNotifier::Exception` (libev offers no support for this)
-* undocumented `QCoreApplication::watchUnixSignal()` is not supported (GLib dispatcher does not support it either; this feature was removed from Qt 5 anyway)
-* Qt 5 only: `QWinEventNotifier` is not supported (`registerEventNotifier()` and `unregisterEventNotifier()` functions are currently implemented as stubs)
+* Qt 5/Windows only: `QWinEventNotifier` is not supported (`registerEventNotifier()` and `unregisterEventNotifier()` functions are currently implemented as stubs)
+
 
 ## Requirements
 * libev >= 4.0
