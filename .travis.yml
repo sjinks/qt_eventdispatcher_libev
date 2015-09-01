@@ -15,6 +15,7 @@ addons:
     packages:
     - libqt4-dev
     - libqt4-private-dev
+    - libev-dev
 
 before_install:
   - git submodule update --init --recursive
