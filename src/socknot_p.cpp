@@ -21,44 +21,31 @@ void EventDispatcherLibEvPrivate::registerSocketNotifier(QSocketNotifier* notifi
 	struct ev_io* data = new struct ev_io;
 	ev_io_init(data, EventDispatcherLibEvPrivate::socket_notifier_callback, sockfd, what);
 	data->data = notifier;
+	this->m_notifiers.insert(notifier, data);
 	ev_io_start(this->m_base, data);
-
-	this->m_notifiers.insertMulti(sockfd, data);
 }
 
 void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* notifier)
 {
-	int sockfd = notifier->socket();
-	SocketNotifierHash::Iterator it = this->m_notifiers.find(sockfd);
-	while (it != this->m_notifiers.end() && it.key() == sockfd) {
+	SocketNotifierHash::Iterator it = this->m_notifiers.find(notifier);
+	if (it != this->m_notifiers.end()) {
 		struct ev_io* data = it.value();
-		if (data->data == notifier) {
-			ev_io_stop(this->m_base, data);
-			delete data;
-			it = this->m_notifiers.erase(it);
-		}
-		else {
-			++it;
-		}
+		Q_ASSERT(data->data == notifier);
+		ev_io_stop(this->m_base, data);
+		delete data;
+		this->m_notifiers.erase(it);
 	}
 }
 
 void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents)
 {
 	EventDispatcherLibEvPrivate* disp = static_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
+	QSocketNotifier* notifier         = static_cast<QSocketNotifier*>(w->data);
+	QSocketNotifier::Type type        = notifier->type();
 
-	SocketNotifierHash::Iterator it = disp->m_notifiers.find(w->fd);
-	while (it != disp->m_notifiers.end() && it.key() == w->fd) {
-		struct ev_io* data = it.value();
-		QSocketNotifier* notifier  = static_cast<QSocketNotifier*>(data->data);
-		QSocketNotifier::Type type = notifier->type();
-
-		if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
-			PendingEvent event(notifier, new QEvent(QEvent::SockAct));
-			disp->m_event_list.append(event);
-		}
-
-		++it;
+	if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
+		PendingEvent event(notifier, new QEvent(QEvent::SockAct));
+		disp->m_event_list.append(event);
 	}
 }
 

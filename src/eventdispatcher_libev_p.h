@@ -4,7 +4,6 @@
 #include <qplatformdefs.h>
 #include <QtCore/QAbstractEventDispatcher>
 #include <QtCore/QHash>
-#include <QtCore/QMultiHash>
 #include <QtCore/QPointer>
 #include <ev.h>
 
@@ -50,7 +49,7 @@ public:
 	QList<QAbstractEventDispatcher::TimerInfo> registeredTimers(QObject* object) const;
 	int remainingTime(int timerId) const;
 
-	typedef QMultiHash<int, struct ev_io*> SocketNotifierHash;
+	typedef QHash<QSocketNotifier*, struct ev_io*> SocketNotifierHash;
 	typedef QHash<int, TimerInfo*> TimerHash;
 	typedef QPair<QPointer<QObject>, QEvent*> PendingEvent;
 	typedef QList<PendingEvent> EventList;
