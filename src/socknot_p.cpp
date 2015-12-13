@@ -45,12 +45,12 @@ void EventDispatcherLibEvPrivate::unregisterSocketNotifier(QSocketNotifier* noti
 
 void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents)
 {
-	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
+	EventDispatcherLibEvPrivate* disp = static_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
 
 	SocketNotifierHash::Iterator it = disp->m_notifiers.find(w->fd);
 	while (it != disp->m_notifiers.end() && it.key() == w->fd) {
 		struct ev_io* data = it.value();
-		QSocketNotifier* notifier  = reinterpret_cast<QSocketNotifier*>(data->data);
+		QSocketNotifier* notifier  = static_cast<QSocketNotifier*>(data->data);
 		QSocketNotifier::Type type = notifier->type();
 
 		if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
