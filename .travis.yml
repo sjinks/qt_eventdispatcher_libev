@@ -11,10 +11,6 @@ compiler:
   - gcc
   - clang
 
-branches:
-  only:
-    - master
-
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get -qq -y install libqt4-dev libqt4-private-dev qtbase5-dev qtbase5-private-dev qtchooser libev-dev
