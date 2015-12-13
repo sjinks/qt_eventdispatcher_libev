@@ -9,7 +9,7 @@
 
 namespace {
 
-	static void calculateCoarseTimerTimeout(TimerInfo* info, const struct timeval& now, struct timeval& when)
+	static void calculateCoarseTimerTimeout(const TimerInfo* info, const struct timeval& now, struct timeval& when)
 	{
 		Q_ASSERT(info->interval > 20);
 		// The coarse timer works like this:
