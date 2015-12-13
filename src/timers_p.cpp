@@ -329,8 +329,8 @@ void EventDispatcherLibEvPrivate::timer_callback(struct ev_loop* loop, struct ev
 {
 	Q_UNUSED(revents)
 
-	EventDispatcherLibEvPrivate* self = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
-	TimerInfo* info                   = reinterpret_cast<TimerInfo*>(w->data);
+	EventDispatcherLibEvPrivate* self = static_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
+	TimerInfo* info                   = static_cast<TimerInfo*>(w->data);
 
 	// Timer can be reactivated only after its callback finishes; processEvents() will take care of this
 	PendingEvent event(info->object, new QTimerEvent(info->timerId));

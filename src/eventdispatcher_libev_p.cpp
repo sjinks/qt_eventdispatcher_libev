@@ -163,7 +163,7 @@ void EventDispatcherLibEvPrivate::wake_up_handler(struct ev_loop* loop, struct e
 	Q_UNUSED(w)
 	Q_UNUSED(revents)
 
-	EventDispatcherLibEvPrivate* disp = reinterpret_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
+	EventDispatcherLibEvPrivate* disp = static_cast<EventDispatcherLibEvPrivate*>(ev_userdata(loop));
 	disp->m_awaken = true;
 
 #if QT_VERSION >= 0x040400
