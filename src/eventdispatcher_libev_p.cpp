@@ -30,7 +30,9 @@ EventDispatcherLibEvPrivate::~EventDispatcherLibEvPrivate(void)
 
 		this->killTimers();
 		this->killSocketNotifiers();
+#if QT_VERSION < 0x040500
 		qDeleteAll(this->m_event_list);
+#endif
 
 		ev_loop_destroy(this->m_base);
 		this->m_base = 0;
@@ -83,9 +85,17 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 
 		result |= (list.size() > 0) | this->m_awaken;
 
+#if QT_VERSION >= 0x040500
+		for (int i=0; i<list.size(); ++i) {
+			const EventListValue& e = list.at(i);
+			if (!e->obj.isNull()) {
+				QCoreApplication::sendEvent(e->obj, e->ev);
+			}
+		}
+#else
 		try {
 			for (int i=0; i<list.size(); ++i) {
-				PendingEvent* e = list.at(i);
+				const EventListValue& e = list.at(i);
 				if (!e->obj.isNull()) {
 					QCoreApplication::sendEvent(e->obj, e->ev);
 				}
@@ -95,13 +105,14 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 			qDeleteAll(list);
 			throw;
 		}
+#endif
 
 		struct timeval now;
 		gettimeofday(&now, 0);
 
 		// Now that all event handlers have finished (and we returned from the recusrion), reactivate all pending timers
 		for (int i=0; i<list.size(); ++i) {
-			PendingEvent* e = list.at(i);
+			const EventListValue& e = list.at(i);
 			if (!e->obj.isNull() && e->ev->type() == QEvent::Timer) {
 				QTimerEvent* te = static_cast<QTimerEvent*>(e->ev);
 				TimerHash::Iterator tit = this->m_timers.find(te->timerId());
@@ -117,7 +128,9 @@ bool EventDispatcherLibEvPrivate::processEvents(QEventLoop::ProcessEventsFlags f
 				}
 			}
 
+#if QT_VERSION < 0x040500
 			delete e;
+#endif
 		}
 	}
 

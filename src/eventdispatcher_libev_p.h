@@ -13,6 +13,10 @@
 #	include <QtCore/QAtomicInt>
 #endif
 
+#if QT_VERSION >= 0x040500
+#	include <QtCore/QSharedPointer>
+#endif
+
 #include "qt4compat.h"
 
 struct TimerInfo {
@@ -56,8 +60,14 @@ public:
 	int remainingTime(int timerId) const;
 
 	typedef QHash<QSocketNotifier*, struct ev_io*> SocketNotifierHash;
+#if QT_VERSION >= 0x040500
+	typedef QSharedPointer<PendingEvent> EventListValue;
+#else
+	typedef PendingEvent* EventListValue;
+#endif
+
 	typedef QHash<int, TimerInfo*> TimerHash;
-	typedef QVector<PendingEvent*> EventList;
+	typedef QVector<EventListValue> EventList;
 
 private:
 	Q_DISABLE_COPY(EventDispatcherLibEvPrivate)

@@ -186,7 +186,7 @@ void EventDispatcherLibEvPrivate::registerTimer(int timerId, int interval, Qt::T
 	struct timeval now;
 	gettimeofday(&now, 0);
 
-	TimerInfo* info = new TimerInfo;
+	TimerInfo* info(new TimerInfo);
 	info->timerId   = timerId;
 	info->interval  = interval;
 	info->type      = type;
@@ -297,7 +297,7 @@ void EventDispatcherLibEvPrivate::timer_callback(struct ev_loop* loop, struct ev
 	TimerInfo* info                   = static_cast<TimerInfo*>(w->data);
 
 	// Timer can be reactivated only after its callback finishes; processEvents() will take care of this
-	PendingEvent* event = new PendingEvent(info->object, new QTimerEvent(info->timerId));
+	EventListValue event(new PendingEvent(info->object, new QTimerEvent(info->timerId)));
 	self->m_event_list.append(event);
 }
 
