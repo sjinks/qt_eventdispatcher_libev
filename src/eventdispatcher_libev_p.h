@@ -3,8 +3,10 @@
 
 #include <qplatformdefs.h>
 #include <QtCore/QAbstractEventDispatcher>
+#include <QtCore/QEvent>
 #include <QtCore/QHash>
 #include <QtCore/QPointer>
+#include <QtCore/QVector>
 #include <ev.h>
 
 #if QT_VERSION >= 0x040400
@@ -15,20 +17,26 @@
 
 struct TimerInfo {
 	QObject* object;
+	struct ev_loop* loop;
 	struct ev_timer ev;
 	struct timeval when;
 	int timerId;
 	int interval;
 	Qt::TimerType type;
+
+	~TimerInfo(void) { ev_timer_stop(this->loop, &this->ev); }
 };
 
-struct ZeroTimer {
-	QObject* object;
-	bool active;
+struct PendingEvent {
+	QPointer<QObject> obj;
+	QEvent* ev;
+
+	PendingEvent(QObject* p, QEvent* e) : obj(p), ev(e) {}
+	~PendingEvent(void) { delete this->ev; }
 };
 
-Q_DECLARE_TYPEINFO(TimerInfo, Q_PRIMITIVE_TYPE);
-Q_DECLARE_TYPEINFO(ZeroTimer, Q_PRIMITIVE_TYPE);
+Q_DECLARE_TYPEINFO(TimerInfo,    Q_MOVABLE_TYPE);
+Q_DECLARE_TYPEINFO(PendingEvent, Q_MOVABLE_TYPE);
 
 Q_DECL_HIDDEN ev_tstamp calculateNextTimeout(TimerInfo* info, const struct timeval& now);
 
@@ -39,11 +47,9 @@ public:
 	EventDispatcherLibEvPrivate(EventDispatcherLibEv* const q);
 	~EventDispatcherLibEvPrivate(void);
 	bool processEvents(QEventLoop::ProcessEventsFlags flags);
-	bool processZeroTimers(void);
 	void registerSocketNotifier(QSocketNotifier* notifier);
 	void unregisterSocketNotifier(QSocketNotifier* notifier);
 	void registerTimer(int timerId, int interval, Qt::TimerType type, QObject* object);
-	void registerZeroTimer(int timerId, QObject* object);
 	bool unregisterTimer(int timerId);
 	bool unregisterTimers(QObject* object);
 	QList<QAbstractEventDispatcher::TimerInfo> registeredTimers(QObject* object) const;
@@ -51,9 +57,7 @@ public:
 
 	typedef QHash<QSocketNotifier*, struct ev_io*> SocketNotifierHash;
 	typedef QHash<int, TimerInfo*> TimerHash;
-	typedef QPair<QPointer<QObject>, QEvent*> PendingEvent;
-	typedef QList<PendingEvent> EventList;
-	typedef QHash<int, ZeroTimer> ZeroTimerHash;
+	typedef QVector<PendingEvent*> EventList;
 
 private:
 	Q_DISABLE_COPY(EventDispatcherLibEvPrivate)
@@ -69,7 +73,6 @@ private:
 	SocketNotifierHash m_notifiers;
 	TimerHash m_timers;
 	EventList m_event_list;
-	ZeroTimerHash m_zero_timers;
 	bool m_awaken;
 
 	static void socket_notifier_callback(struct ev_loop* loop, struct ev_io* w, int revents);

@@ -103,12 +103,7 @@ void EventDispatcherLibEv::registerTimer(
 #endif
 
 	Q_D(EventDispatcherLibEv);
-	if (interval) {
-		d->registerTimer(timerId, interval, type, object);
-	}
-	else {
-		d->registerZeroTimer(timerId, object);
-	}
+	d->registerTimer(timerId, interval, type, object);
 }
 
 bool EventDispatcherLibEv::unregisterTimer(int timerId)

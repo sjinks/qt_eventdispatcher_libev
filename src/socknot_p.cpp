@@ -44,7 +44,7 @@ void EventDispatcherLibEvPrivate::socket_notifier_callback(struct ev_loop* loop,
 	QSocketNotifier::Type type        = notifier->type();
 
 	if ((QSocketNotifier::Read == type && (revents & EV_READ)) || (QSocketNotifier::Write == type && (revents & EV_WRITE))) {
-		PendingEvent event(notifier, new QEvent(QEvent::SockAct));
+		PendingEvent* event = new PendingEvent(notifier, new QEvent(QEvent::SockAct));
 		disp->m_event_list.append(event);
 	}
 }
