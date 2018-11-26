@@ -9,4 +9,4 @@ DESTDIR  = ../lib
 LIBS           += -L$$PWD/../lib -leventdispatcher_libev
 INCLUDEPATH    += $$PWD/../src
 DEPENDPATH     += $$PWD/../src
-PRE_TARGETDEPS += $$PWD/../lib/libeventdispatcher_libev.a
+PRE_TARGETDEPS += $$DESTDIR/../lib/libeventdispatcher_libev.a
