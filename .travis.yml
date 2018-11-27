@@ -13,7 +13,7 @@ compiler:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get -qq -y install libqt4-dev libqt4-private-dev qtbase5-dev qtbase5-private-dev qtchooser libev-dev
+  - sudo apt-get -qq -y install libqt4-dev libqt4-private-dev qtbase5-dev qtbase5-private-dev qtdeclarative5-dev qtchooser libev-dev
   - git submodule update --init --recursive
 
 script:
